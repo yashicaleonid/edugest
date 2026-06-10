@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+enum Role {
+  ADMINISTRADOR
+  DIRECTOR
+  CAJERO
+  DOCENTE
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  nombre    String
+  apellido  String
+  ci        String   @unique
+  role      Role     @default(ADMINISTRADOR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  docente      Docente?
+  pagos        Pago[]
+  notificaciones Notificacion[]
+
+  @@map("usuarios")
+}
+
+model PadreFamilia {
+  id        String   @id @default(uuid())
+  nombre    String
+  apellido  String
+  ci        String   @unique
+  telefono  String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  estudiantes Estudiante[]
+
+  @@map("padres_familia")
+}
+
+model Estudiante {
+  id          String   @id @default(uuid())
+  nombre      String
+  apellido    String
+  ci          String   @unique
+  fechaNac    DateTime
+  foto        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  padreId     String
+  padre       PadreFamilia  @relation(fields: [padreId], references: [id])
+  inscripciones Inscripcion[]
+
+  @@map("estudiantes")
+}
+
+model Docente {
+  id        String   @id @default(uuid())
+  telefono  String?
+  createdAt DateTime @default(now())
+
+  usuarioId String   @unique
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  cursos    Curso[]
+
+  @@map("docentes")
+}
+
+model Curso {
+  id        String   @id @default(uuid())
+  nombre    String
+  nivel     String
+  paralelo  String
+  turno     String
+  gestion   Int
+  createdAt DateTime @default(now())
+
+  docenteId    String?
+  docente      Docente?      @relation(fields: [docenteId], references: [id])
+  inscripciones Inscripcion[]
+
+  @@map("cursos")
+}
+
+model Inscripcion {
+  id        String   @id @default(uuid())
+  gestion   Int
+  estado    String   @default("ACTIVO")
+  createdAt DateTime @default(now())
+
+  estudianteId String
+  estudiante   Estudiante @relation(fields: [estudianteId], references: [id])
+  cursoId      String
+  curso        Curso      @relation(fields: [cursoId], references: [id])
+
+  pagos       Pago[]
+  asistencias Asistencia[]
+
+  @@map("inscripciones")
+}
+
+model Pago {
+  id          String   @id @default(uuid())
+  monto       Decimal
+  metodoPago  String
+  mes         String
+  gestion     Int
+  createdAt   DateTime @default(now())
+
+  inscripcionId String
+  inscripcion   Inscripcion @relation(fields: [inscripcionId], references: [id])
+  cajeroId      String
+  cajero        Usuario     @relation(fields: [cajeroId], references: [id])
+
+  factura     Factura?
+
+  @@map("pagos")
+}
+
+model Factura {
+  id           String   @id @default(uuid())
+  cuf          String   @unique
+  nroFactura   Int
+  estado       String   @default("PENDIENTE")
+  fechaEmision DateTime @default(now())
+
+  pagoId       String   @unique
+  pago         Pago     @relation(fields: [pagoId], references: [id])
+
+  @@map("facturas")
+}
+
+model Asistencia {
+  id     String   @id @default(uuid())
+  fecha  DateTime
+  estado String
+
+  inscripcionId String
+  inscripcion   Inscripcion @relation(fields: [inscripcionId], references: [id])
+
+  @@map("asistencias")
+}
+
+model Notificacion {
+  id        String   @id @default(uuid())
+  titulo    String
+  mensaje   String
+  leido     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("notificaciones")
+}

@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import api from '../../api/axios';
- 
+
 type Asistencia = {
   id: string;
   fecha: string;
@@ -17,23 +17,24 @@ type Asistencia = {
     curso?: { nombre: string; paralelo: string };
   };
 };
- 
+
 type Inscripcion = {
   id: string;
   gestion: number;
+  estado: string;
   estudiante?: { nombre: string; apellido: string };
-  curso?: { nombre: string; paralelo: string };
+  curso?: { id: string; nombre: string; paralelo: string };
 };
- 
+
 type Curso = {
   id: string;
   nombre: string;
   paralelo: string;
   gestion: number;
 };
- 
+
 const ESTADOS = ['PRESENTE', 'AUSENTE', 'RETRASO', 'PERMISO'];
- 
+
 export default function AsistenciaPage() {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [inscripciones, setInscripciones] = useState<Inscripcion[]>([]);
@@ -43,15 +44,17 @@ export default function AsistenciaPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [cursoSeleccionado, setCursoSeleccionado] = useState('');
- 
+
   const hoy = new Date().toISOString().split('T')[0];
   const [registros, setRegistros] = useState<{ inscripcionId: string; estado: string }[]>([]);
   const [fecha, setFecha] = useState(hoy);
- 
+  const [fechaFiltro, setFechaFiltro] = useState('');
+
   const fetchData = async () => {
     try {
+      const gestion = new Date().getFullYear();
       const [inscripcionesRes, cursosRes] = await Promise.all([
-        api.get('/inscripciones'),
+        api.get(`/inscripciones?gestion=${gestion}&estado=ACTIVO`),
         api.get('/cursos'),
       ]);
       setInscripciones(inscripcionesRes.data);
@@ -62,60 +65,76 @@ export default function AsistenciaPage() {
       setLoading(false);
     }
   };
- 
-  const fetchAsistenciasCurso = async (cursoId: string) => {
+
+  const fetchAsistenciasCurso = async (cursoId: string, fecha?: string) => {
     try {
-      const { data } = await api.get(`/asistencia/curso/${cursoId}`);
+      const url = fecha
+        ? `/asistencia/curso/${cursoId}?fecha=${fecha}`
+        : `/asistencia/curso/${cursoId}`;
+      const { data } = await api.get(url);
       setAsistencias(data);
     } catch {
       setAsistencias([]);
     }
   };
- 
+
   useEffect(() => { fetchData(); }, []);
- 
+
+  const inscripcionesDelCurso = (cursoId: string) =>
+    inscripciones.filter((i) => i.curso?.id === cursoId);
+
   const handleCursoChange = (cursoId: string) => {
     setCursoSeleccionado(cursoId);
-    fetchAsistenciasCurso(cursoId);
-    const inscripcionesCurso = inscripciones.filter(
-      (i) => i.curso && cursos.find((c) => c.id === cursoId)
-        ? i.curso.nombre === cursos.find((c) => c.id === cursoId)?.nombre
-        : false
-    );
-    setRegistros(inscripcionesCurso.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' })));
+    fetchAsistenciasCurso(cursoId, fechaFiltro || undefined);
+    const delCurso = inscripcionesDelCurso(cursoId);
+    setRegistros(delCurso.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' })));
   };
- 
+
+  const handleFechaFiltroChange = (value: string) => {
+    setFechaFiltro(value);
+    if (cursoSeleccionado) {
+      fetchAsistenciasCurso(cursoSeleccionado, value || undefined);
+    }
+  };
+
   const handleOpenDialog = () => {
-    setRegistros(inscripciones.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' })));
+    const base = cursoSeleccionado
+      ? inscripcionesDelCurso(cursoSeleccionado)
+      : inscripciones;
+    setRegistros(base.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' })));
     setOpen(true);
   };
- 
+
   const handleEstadoChange = (inscripcionId: string, estado: string) => {
     setRegistros((prev) =>
-      prev.map((r) => r.inscripcionId === inscripcionId ? { ...r, estado } : r)
+      prev.map((r) => r.inscripcionId === inscripcionId ? { ...r, estado } : r),
     );
   };
- 
+
   const handleSubmit = async () => {
     setError('');
     setSaving(true);
     try {
       await api.post('/asistencia/masiva', { fecha, registros });
       setOpen(false);
-      if (cursoSeleccionado) fetchAsistenciasCurso(cursoSeleccionado);
+      if (cursoSeleccionado) fetchAsistenciasCurso(cursoSeleccionado, fechaFiltro || undefined);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al registrar asistencia.');
     } finally {
       setSaving(false);
     }
   };
- 
+
   const getEstadoColor = (estado: string) => {
     if (estado === 'PRESENTE') return 'success';
     if (estado === 'AUSENTE') return 'error';
     return 'warning';
   };
- 
+
+  const estudiantesDialog = cursoSeleccionado
+    ? inscripcionesDelCurso(cursoSeleccionado)
+    : inscripciones;
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -124,10 +143,10 @@ export default function AsistenciaPage() {
           Registrar Asistencia
         </Button>
       </Box>
- 
-      <Card sx={{ borderRadius: 3, boxShadow: 2, p: 2, mb: 3 }}>
+
+      <Card sx={{ borderRadius: 3, boxShadow: 2, p: 2, mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <TextField
-          select label="Filtrar por Curso" size="small" sx={{ minWidth: 300 }}
+          select label="Filtrar por Curso" size="small" sx={{ minWidth: 280 }}
           value={cursoSeleccionado}
           onChange={(e) => handleCursoChange(e.target.value)}
         >
@@ -137,8 +156,14 @@ export default function AsistenciaPage() {
             </MenuItem>
           ))}
         </TextField>
+        <TextField
+          label="Filtrar por Fecha" type="date" size="small"
+          slotProps={{ inputLabel: { shrink: true } }}
+          value={fechaFiltro}
+          onChange={(e) => handleFechaFiltroChange(e.target.value)}
+        />
       </Card>
- 
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
@@ -186,11 +211,16 @@ export default function AsistenciaPage() {
           </TableContainer>
         </Card>
       )}
- 
+
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Registrar Asistencia</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {!cursoSeleccionado && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Selecciona un curso en el filtro para registrar asistencia por curso.
+            </Alert>
+          )}
           <TextField
             fullWidth label="Fecha" type="date" size="small" sx={{ mt: 2, mb: 3 }}
             slotProps={{ inputLabel: { shrink: true } }}
@@ -200,7 +230,7 @@ export default function AsistenciaPage() {
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
             Marcar estado por estudiante
           </Typography>
-          {inscripciones.map((i) => (
+          {estudiantesDialog.map((i) => (
             <Box
               key={i.id}
               sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #f1f5f9' }}
@@ -225,7 +255,7 @@ export default function AsistenciaPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setOpen(false)} color="inherit">Cancelar</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
+          <Button variant="contained" onClick={handleSubmit} disabled={saving || estudiantesDialog.length === 0} sx={{ borderRadius: 2 }}>
             {saving ? <CircularProgress size={20} color="inherit" /> : 'Guardar Asistencia'}
           </Button>
         </DialogActions>
@@ -233,4 +263,3 @@ export default function AsistenciaPage() {
     </Box>
   );
 }
- 

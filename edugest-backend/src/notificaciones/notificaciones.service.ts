@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateNotificacionDto } from './dto/create-notificacion.dto';
 
@@ -64,5 +65,24 @@ export class NotificacionesService {
       message: `${result.count} notificaciones marcadas como leídas.`,
       total: result.count,
     };
+  }
+
+  async notificarUsuario(usuarioId: string, titulo: string, mensaje: string) {
+    return this.prisma.db.notificacion.create({
+      data: { usuarioId, titulo, mensaje },
+    });
+  }
+
+  async notificarPorRoles(roles: Role[], titulo: string, mensaje: string) {
+    const usuarios = await this.prisma.db.usuario.findMany({
+      where: { role: { in: roles }, isActive: true },
+      select: { id: true },
+    });
+
+    if (usuarios.length === 0) return;
+
+    await this.prisma.db.notificacion.createMany({
+      data: usuarios.map((u) => ({ usuarioId: u.id, titulo, mensaje })),
+    });
   }
 }

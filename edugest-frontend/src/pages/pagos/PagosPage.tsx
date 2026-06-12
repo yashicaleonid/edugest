@@ -3,7 +3,7 @@ import {
   Box, Typography, Button, Card, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Chip, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, CircularProgress, Alert, MenuItem,
+  TextField, CircularProgress, Alert, MenuItem, Tabs, Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -22,10 +22,21 @@ type PagoForm = { inscripcionId: string; cajeroId: string; monto: string; metodo
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const METODOS = ['EFECTIVO','QR','TRANSFERENCIA'];
 
+type Deuda = {
+  inscripcionId: string;
+  estudiante: string;
+  curso: string;
+  padre?: string;
+  mesesPendientes: string[];
+};
+
 export default function PagosPage() {
   const [pagos, setPagos] = useState<Pago[]>([]);
+  const [deudas, setDeudas] = useState<Deuda[]>([]);
   const [inscripciones, setInscripciones] = useState<Inscripcion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState(0);
+  const [gestionDeudas, setGestionDeudas] = useState(new Date().getFullYear().toString());
   const [open, setOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailData, setDetailData] = useState<Pago | null>(null);
@@ -37,8 +48,15 @@ export default function PagosPage() {
 
   const fetchData = async () => {
     try {
-      const [pagosRes, inscripcionesRes] = await Promise.all([api.get('/pagos'), api.get('/inscripciones')]);
-      setPagos(pagosRes.data); setInscripciones(inscripcionesRes.data);
+      const gestion = parseInt(gestionDeudas);
+      const [pagosRes, inscripcionesRes, deudasRes] = await Promise.all([
+        api.get('/pagos'),
+        api.get('/inscripciones'),
+        api.get(`/pagos/deudas/${gestion}`),
+      ]);
+      setPagos(pagosRes.data);
+      setInscripciones(inscripcionesRes.data);
+      setDeudas(deudasRes.data);
     } catch { setError('Error al cargar datos.'); }
     finally { setLoading(false); }
   };
@@ -55,7 +73,7 @@ export default function PagosPage() {
     finally { setDetailLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [gestionDeudas]);
 
   const handleSubmit = async () => {
     setError(''); setSaving(true);
@@ -72,12 +90,21 @@ export default function PagosPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Pagos</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>Registrar Pago</Button>
       </Box>
 
-      {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box> : (
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+        <Tab label="Historial de Pagos" />
+        <Tab label={`Deudas (${deudas.length})`} />
+      </Tabs>
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Al registrar un pago se emite la factura electrónica automáticamente (CUCU) y se envía por correo al padre de familia.
+      </Alert>
+
+      {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box> : tab === 0 ? (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
           <TableContainer>
             <Table>
@@ -114,6 +141,38 @@ export default function PagosPage() {
                   </TableRow>
                 ))}
                 {pagos.length === 0 && <TableRow><TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>No hay pagos registrados.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      ) : (
+        <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+          <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+            <TextField label="Gestión" size="small" value={gestionDeudas}
+              onChange={(e) => setGestionDeudas(e.target.value)} sx={{ width: 120 }} />
+          </Box>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                  <TableCell><strong>Estudiante</strong></TableCell>
+                  <TableCell><strong>Curso</strong></TableCell>
+                  <TableCell><strong>Meses pendientes</strong></TableCell>
+                  <TableCell><strong>Email padre</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {deudas.map((d) => (
+                  <TableRow key={d.inscripcionId} hover>
+                    <TableCell>{d.estudiante}</TableCell>
+                    <TableCell>{d.curso}</TableCell>
+                    <TableCell>{d.mesesPendientes.join(', ')}</TableCell>
+                    <TableCell>{d.padre || '—'}</TableCell>
+                  </TableRow>
+                ))}
+                {deudas.length === 0 && (
+                  <TableRow><TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>No hay deudas pendientes.</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>

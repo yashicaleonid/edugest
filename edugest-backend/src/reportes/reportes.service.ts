@@ -45,8 +45,12 @@ export class ReportesService {
       total: pagos.filter((p) => p.mes === mes).reduce((sum, p) => sum + Number(p.monto), 0),
     }));
 
-    const pagosPorMetodo = ['Efectivo', 'QR', 'Transferencia'].map((metodo) => ({
-      metodo,
+    const pagosPorMetodo = [
+      { metodo: 'EFECTIVO', label: 'Efectivo' },
+      { metodo: 'QR', label: 'QR' },
+      { metodo: 'TRANSFERENCIA', label: 'Transferencia' },
+    ].map(({ metodo, label }) => ({
+      metodo: label,
       total: pagos.filter((p) => p.metodoPago === metodo).reduce((sum, p) => sum + Number(p.monto), 0),
       cantidad: pagos.filter((p) => p.metodoPago === metodo).length,
     }));
@@ -153,5 +157,34 @@ export class ReportesService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async dashboard(gestion?: number) {
+    const gestionActual = gestion || new Date().getFullYear();
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const manana = new Date(hoy);
+    manana.setDate(manana.getDate() + 1);
+
+    const [resumen, asistenciasHoy, pagosHoy] = await Promise.all([
+      this.resumenGeneral(gestionActual),
+      this.prisma.db.asistencia.count({
+        where: {
+          fecha: { gte: hoy, lt: manana },
+          inscripcion: { gestion: gestionActual },
+        },
+      }),
+      this.prisma.db.pago.count({
+        where: {
+          createdAt: { gte: hoy, lt: manana },
+          gestion: gestionActual,
+        },
+      }),
+    ]);
+
+    return {
+      ...resumen,
+      operativos: { asistenciasHoy, pagosHoy },
+    };
   }
 }

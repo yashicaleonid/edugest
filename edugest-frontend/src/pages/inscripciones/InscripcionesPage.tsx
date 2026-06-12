@@ -7,6 +7,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+import EditIcon from '@mui/icons-material/Edit';
 import api from '../../api/axios';
 
 type Inscripcion = {
@@ -14,8 +16,8 @@ type Inscripcion = {
   gestion: number;
   estado: string;
   createdAt: string;
-  estudiante?: { id: string; nombre: string; apellido: string; ci: string; fechaNac?: string; padre?: { nombre: string; apellido: string; telefono?: string; email?: string } };
-  curso?: { nombre: string; nivel: string; paralelo: string; turno: string; gestion: number };
+  estudiante?: { id: string; nombre: string; apellido: string; ci: string; padre?: { nombre: string; apellido: string; telefono?: string; email?: string } };
+  curso?: { id: string; nombre: string; nivel: string; paralelo: string; turno: string; gestion: number };
   pagos?: any[];
   asistencias?: any[];
 };
@@ -28,6 +30,8 @@ const ESTADO_COLORS: Record<string, 'success' | 'error' | 'warning'> = {
   ACTIVO: 'success', RETIRADO: 'error', SUSPENDIDO: 'warning',
 };
 
+const ESTADOS = ['ACTIVO', 'RETIRADO', 'SUSPENDIDO'];
+
 export default function InscripcionesPage() {
   const [inscripciones, setInscripciones] = useState<Inscripcion[]>([]);
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
@@ -35,18 +39,32 @@ export default function InscripcionesPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [estadoOpen, setEstadoOpen] = useState(false);
+  const [renovarOpen, setRenovarOpen] = useState(false);
   const [detailData, setDetailData] = useState<Inscripcion | null>(null);
+  const [selected, setSelected] = useState<Inscripcion | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [filtroGestion, setFiltroGestion] = useState(new Date().getFullYear().toString());
+  const [filtroEstado, setFiltroEstado] = useState('');
+  const [nuevoEstado, setNuevoEstado] = useState('ACTIVO');
+  const [renovarForm, setRenovarForm] = useState({ gestion: (new Date().getFullYear() + 1).toString(), cursoId: '' });
   const [form, setForm] = useState<InscripcionForm>({
     estudianteId: '', cursoId: '', gestion: new Date().getFullYear().toString(),
   });
 
   const fetchData = async () => {
     try {
+      const params = new URLSearchParams();
+      if (filtroGestion) params.set('gestion', filtroGestion);
+      if (filtroEstado) params.set('estado', filtroEstado);
+      const query = params.toString() ? `?${params.toString()}` : '';
+
       const [inscripcionesRes, estudiantesRes, cursosRes] = await Promise.all([
-        api.get('/inscripciones'), api.get('/estudiantes'), api.get('/cursos'),
+        api.get(`/inscripciones${query}`),
+        api.get('/estudiantes'),
+        api.get('/cursos'),
       ]);
       setInscripciones(inscripcionesRes.data);
       setEstudiantes(estudiantesRes.data);
@@ -55,7 +73,7 @@ export default function InscripcionesPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [filtroGestion, filtroEstado]);
 
   const handleVerDetalle = async (id: string) => {
     setDetailLoading(true);
@@ -78,6 +96,33 @@ export default function InscripcionesPage() {
     finally { setSaving(false); }
   };
 
+  const handleCambiarEstado = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      await api.patch(`/inscripciones/${selected.id}`, { estado: nuevoEstado });
+      setEstadoOpen(false);
+      fetchData();
+    } catch (err: any) { setError(err.response?.data?.message || 'Error al actualizar estado.'); }
+    finally { setSaving(false); }
+  };
+
+  const handleRenovar = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      await api.post(`/inscripciones/${selected.id}/renovar`, {
+        gestion: parseInt(renovarForm.gestion),
+        cursoId: renovarForm.cursoId || undefined,
+      });
+      setRenovarOpen(false);
+      fetchData();
+    } catch (err: any) { setError(err.response?.data?.message || 'Error al renovar inscripción.'); }
+    finally { setSaving(false); }
+  };
+
+  const cursosRenovacion = cursos.filter((c) => c.gestion === parseInt(renovarForm.gestion));
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -86,6 +131,18 @@ export default function InscripcionesPage() {
           Nueva Inscripción
         </Button>
       </Box>
+
+      <Card sx={{ borderRadius: 3, boxShadow: 2, p: 2, mb: 3, display: 'flex', gap: 2 }}>
+        <TextField label="Gestión" size="small" value={filtroGestion}
+          onChange={(e) => setFiltroGestion(e.target.value)} sx={{ width: 120 }} />
+        <TextField select label="Estado" size="small" value={filtroEstado}
+          onChange={(e) => setFiltroEstado(e.target.value)} sx={{ minWidth: 160 }}>
+          <MenuItem value="">Todos</MenuItem>
+          {ESTADOS.map((e) => <MenuItem key={e} value={e}>{e}</MenuItem>)}
+        </TextField>
+      </Card>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       {loading ? <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box> : (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
@@ -117,6 +174,18 @@ export default function InscripcionesPage() {
                       <IconButton size="small" color="primary" title="Ver detalle" onClick={() => handleVerDetalle(i.id)}>
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
+                      <IconButton size="small" title="Cambiar estado" onClick={() => { setSelected(i); setNuevoEstado(i.estado); setEstadoOpen(true); }}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      {i.estado === 'ACTIVO' && (
+                        <IconButton size="small" color="success" title="Renovar inscripción" onClick={() => {
+                          setSelected(i);
+                          setRenovarForm({ gestion: (i.gestion + 1).toString(), cursoId: '' });
+                          setRenovarOpen(true);
+                        }}>
+                          <AutorenewIcon fontSize="small" />
+                        </IconButton>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -129,7 +198,6 @@ export default function InscripcionesPage() {
         </Card>
       )}
 
-      {/* Modal nueva inscripción */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Nueva Inscripción</DialogTitle>
         <DialogContent>
@@ -154,7 +222,42 @@ export default function InscripcionesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Modal detalle inscripción */}
+      <Dialog open={estadoOpen} onClose={() => setEstadoOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Cambiar estado</DialogTitle>
+        <DialogContent>
+          <TextField select fullWidth label="Estado" size="small" sx={{ mt: 2 }}
+            value={nuevoEstado} onChange={(e) => setNuevoEstado(e.target.value)}>
+            {ESTADOS.map((e) => <MenuItem key={e} value={e}>{e}</MenuItem>)}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEstadoOpen(false)}>Cancelar</Button>
+          <Button variant="contained" onClick={handleCambiarEstado} disabled={saving}>Guardar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={renovarOpen} onClose={() => setRenovarOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Renovar inscripción</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
+            Se creará una nueva inscripción para {selected?.estudiante?.nombre} {selected?.estudiante?.apellido}.
+          </Alert>
+          <TextField fullWidth label="Nueva gestión" size="small" sx={{ mb: 2 }}
+            value={renovarForm.gestion} onChange={(e) => setRenovarForm({ ...renovarForm, gestion: e.target.value, cursoId: '' })} />
+          <TextField select fullWidth label="Curso (opcional)" size="small"
+            value={renovarForm.cursoId} onChange={(e) => setRenovarForm({ ...renovarForm, cursoId: e.target.value })}>
+            <MenuItem value="">Mismo curso anterior</MenuItem>
+            {cursosRenovacion.map((c) => (
+              <MenuItem key={c.id} value={c.id}>{c.nombre} {c.paralelo} — {c.turno}</MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRenovarOpen(false)}>Cancelar</Button>
+          <Button variant="contained" onClick={handleRenovar} disabled={saving}>Renovar</Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Detalle de Inscripción</DialogTitle>
         <DialogContent>
@@ -178,7 +281,7 @@ export default function InscripcionesPage() {
                 <Typography><b>Turno:</b> {detailData.curso?.turno}</Typography>
                 <Typography><b>Gestión:</b> {detailData.gestion}</Typography>
               </Box>
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                 <Chip label={`Estado: ${detailData.estado}`} color={ESTADO_COLORS[detailData.estado] || 'default'} />
                 <Chip label={`${detailData.pagos?.length || 0} pagos`} color="success" variant="outlined" />
                 <Chip label={`${detailData.asistencias?.length || 0} asistencias`} color="info" variant="outlined" />

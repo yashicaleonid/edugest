@@ -1,13 +1,20 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { FacturasService } from '../facturas/facturas.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 
 @Injectable()
 export class PagosService {
+  private readonly logger = new Logger(PagosService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly facturasService: FacturasService,
+    private readonly notificaciones: NotificacionesService,
   ) {}
 
   async create(dto: CreatePagoDto) {
@@ -64,7 +71,19 @@ export class PagosService {
       });
     }
 
-    return pago;
+    await this.notificaciones.notificarPorRoles(
+      [Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO],
+      'Pago registrado',
+      `Pago de Bs ${dto.monto} (${dto.mes} ${dto.gestion}) para ${inscripcion.estudiante.nombre} ${inscripcion.estudiante.apellido}.`,
+    );
+
+    try {
+      await this.facturasService.emitir(pago.id);
+    } catch (err) {
+      this.logger.warn(`No se pudo emitir factura automática para pago ${pago.id}: ${err}`);
+    }
+
+    return this.findOne(pago.id);
   }
 
   async findAll() {

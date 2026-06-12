@@ -16,6 +16,7 @@ type Curso = {
   paralelo: string;
   turno: string;
   gestion: number;
+  cupo?: number;
   docente?: {
     id: string;
     usuario: { nombre: string; apellido: string };
@@ -34,6 +35,7 @@ type CursoForm = {
   paralelo: string;
   turno: string;
   gestion: string;
+  cupo: string;
   docenteId: string;
 };
 
@@ -53,12 +55,12 @@ export default function CursosPage() {
 
   const [form, setForm] = useState<CursoForm>({
     nombre: '', nivel: '', paralelo: 'A', turno: 'Mañana',
-    gestion: new Date().getFullYear().toString(), docenteId: '',
+    gestion: new Date().getFullYear().toString(), cupo: '30', docenteId: '',
   });
 
   const [editForm, setEditForm] = useState<CursoForm>({
     nombre: '', nivel: '', paralelo: 'A', turno: 'Mañana',
-    gestion: new Date().getFullYear().toString(), docenteId: '',
+    gestion: new Date().getFullYear().toString(), cupo: '30', docenteId: '',
   });
 
   const fetchData = async () => {
@@ -85,11 +87,12 @@ export default function CursosPage() {
       await api.post('/cursos', {
         ...form,
         gestion: parseInt(form.gestion),
+        cupo: parseInt(form.cupo),
         docenteId: form.docenteId || undefined,
       });
       setOpen(false);
       setForm({ nombre: '', nivel: '', paralelo: 'A', turno: 'Mañana',
-        gestion: new Date().getFullYear().toString(), docenteId: '' });
+        gestion: new Date().getFullYear().toString(), cupo: '30', docenteId: '' });
       fetchData();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al crear curso.');
@@ -106,6 +109,7 @@ export default function CursosPage() {
       paralelo: curso.paralelo,
       turno: curso.turno,
       gestion: curso.gestion.toString(),
+      cupo: (curso.cupo ?? 30).toString(),
       docenteId: curso.docente?.id || '',
     });
     setEditOpen(true);
@@ -119,6 +123,7 @@ export default function CursosPage() {
       await api.patch(`/cursos/${selectedCurso.id}`, {
         ...editForm,
         gestion: parseInt(editForm.gestion),
+        cupo: parseInt(editForm.cupo),
         docenteId: editForm.docenteId || undefined,
       });
       setEditOpen(false);
@@ -153,7 +158,7 @@ export default function CursosPage() {
                   <TableCell><strong>Turno</strong></TableCell>
                   <TableCell><strong>Gestión</strong></TableCell>
                   <TableCell><strong>Docente</strong></TableCell>
-                  <TableCell><strong>Estudiantes</strong></TableCell>
+                  <TableCell><strong>Cupo</strong></TableCell>
                   <TableCell><strong>Acciones</strong></TableCell>
                 </TableRow>
               </TableHead>
@@ -173,7 +178,11 @@ export default function CursosPage() {
                         : <Chip label="Sin docente" size="small" />}
                     </TableCell>
                     <TableCell>
-                      <Chip label={`${c._count?.inscripciones || 0} estudiante(s)`} size="small" color="success" />
+                      <Chip
+                        label={`${c._count?.inscripciones || 0}/${c.cupo ?? 30}`}
+                        size="small"
+                        color={(c._count?.inscripciones || 0) >= (c.cupo ?? 30) ? 'error' : 'default'}
+                      />
                     </TableCell>
                     <TableCell>
                       <IconButton size="small" color="primary" onClick={() => handleEditOpen(c)}>
@@ -219,6 +228,8 @@ export default function CursosPage() {
             <TextField fullWidth label="Gestión" size="small" value={form.gestion}
               onChange={(e) => setForm({ ...form, gestion: e.target.value })} />
           </Box>
+          <TextField fullWidth label="Cupo máximo" size="small" sx={{ mt: 2 }} type="number"
+            value={form.cupo} onChange={(e) => setForm({ ...form, cupo: e.target.value })} />
           <TextField select fullWidth label="Docente Asignado" size="small" sx={{ mt: 2 }}
             value={form.docenteId} onChange={(e) => setForm({ ...form, docenteId: e.target.value })}>
             <MenuItem value="">Sin docente asignado</MenuItem>
@@ -263,6 +274,8 @@ export default function CursosPage() {
             <TextField fullWidth label="Gestión" size="small" value={editForm.gestion}
               onChange={(e) => setEditForm({ ...editForm, gestion: e.target.value })} />
           </Box>
+          <TextField fullWidth label="Cupo máximo" size="small" sx={{ mt: 2 }} type="number"
+            value={editForm.cupo} onChange={(e) => setEditForm({ ...editForm, cupo: e.target.value })} />
           <TextField select fullWidth label="Docente Asignado" size="small" sx={{ mt: 2 }}
             value={editForm.docenteId} onChange={(e) => setEditForm({ ...editForm, docenteId: e.target.value })}>
             <MenuItem value="">Sin docente asignado</MenuItem>

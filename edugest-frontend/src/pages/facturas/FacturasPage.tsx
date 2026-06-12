@@ -8,6 +8,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import EmailIcon from '@mui/icons-material/Email';
 import CancelIcon from '@mui/icons-material/Cancel';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import SyncIcon from '@mui/icons-material/Sync';
 import api from '../../api/axios';
 import type { Factura } from '../../types';
 
@@ -45,6 +46,16 @@ export default function FacturasPage() {
       setSuccess(data.mensaje || 'Factura validada.');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al validar factura.');
+    }
+  };
+
+  const handleConsultarEstado = async (id: string) => {
+    try {
+      const { data } = await api.get(`/facturas/${id}/estado`);
+      setSuccess(`Estado actualizado: ${data.estado}`);
+      fetchFacturas();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al consultar estado.');
     }
   };
 
@@ -106,6 +117,9 @@ export default function FacturasPage() {
                 <TableCell>
                   <Tooltip title="Reenviar por correo">
                     <IconButton size="small" onClick={() => handleReenviar(f.id)}><EmailIcon /></IconButton>
+                  </Tooltip>
+                  <Tooltip title="Consultar estado SIN">
+                    <IconButton size="small" onClick={() => handleConsultarEstado(f.id)}><SyncIcon /></IconButton>
                   </Tooltip>
                   <Tooltip title="Validar ante SIN">
                     <IconButton size="small" onClick={() => handleValidar(f.id)}><VerifiedIcon /></IconButton>

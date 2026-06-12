@@ -20,6 +20,8 @@ type Documento = {
   estudiante?: { nombre: string; apellido: string };
 };
 
+type Estudiante = { id: string; nombre: string; apellido: string; ci: string };
+
 const CATEGORIAS = [
   { value: 'FOTO_ESTUDIANTE', label: 'Foto de Estudiante' },
   { value: 'COMPROBANTE_PAGO', label: 'Comprobante de Pago' },
@@ -29,15 +31,19 @@ const CATEGORIAS = [
 
 export default function DocumentosPage() {
   const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [categoria, setCategoria] = useState('OTRO');
+  const [estudianteId, setEstudianteId] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchDocumentos = async () => {
     try {
-      const { data } = await api.get('/documentos');
+      const params = filtroCategoria ? `?categoria=${filtroCategoria}` : '';
+      const { data } = await api.get(`/documentos${params}`);
       setDocumentos(data);
     } catch {
       setError('Error al cargar documentos.');
@@ -46,7 +52,10 @@ export default function DocumentosPage() {
     }
   };
 
-  useEffect(() => { fetchDocumentos(); }, []);
+  useEffect(() => {
+    fetchDocumentos();
+    api.get('/estudiantes').then(({ data }) => setEstudiantes(data)).catch(() => {});
+  }, [filtroCategoria]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,8 +64,11 @@ export default function DocumentosPage() {
     const formData = new FormData();
     formData.append('file', file);
 
+    const params = new URLSearchParams({ categoria });
+    if (estudianteId) params.set('estudianteId', estudianteId);
+
     try {
-      await api.post(`/documentos/upload?categoria=${categoria}`, formData, {
+      await api.post(`/documentos/upload?${params.toString()}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSuccess('Documento subido exitosamente.');
@@ -90,12 +102,21 @@ export default function DocumentosPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: 220 }}>
-          <InputLabel>Categoría</InputLabel>
-          <Select value={categoria} label="Categoría" onChange={(e) => setCategoria(e.target.value)}>
+          <InputLabel>Categoría al subir</InputLabel>
+          <Select value={categoria} label="Categoría al subir" onChange={(e) => setCategoria(e.target.value)}>
             {CATEGORIAS.map((c) => (
               <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 260 }}>
+          <InputLabel>Estudiante (opcional)</InputLabel>
+          <Select value={estudianteId} label="Estudiante (opcional)" onChange={(e) => setEstudianteId(e.target.value)}>
+            <MenuItem value="">Sin estudiante</MenuItem>
+            {estudiantes.map((e) => (
+              <MenuItem key={e.id} value={e.id}>{e.apellido}, {e.nombre}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -104,6 +125,16 @@ export default function DocumentosPage() {
         </Button>
         <input ref={fileRef} type="file" hidden onChange={handleUpload} />
       </Box>
+
+      <FormControl size="small" sx={{ minWidth: 220, mb: 2 }}>
+        <InputLabel>Filtrar por categoría</InputLabel>
+        <Select value={filtroCategoria} label="Filtrar por categoría" onChange={(e) => setFiltroCategoria(e.target.value)}>
+          <MenuItem value="">Todas</MenuItem>
+          {CATEGORIAS.map((c) => (
+            <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
         <Table>

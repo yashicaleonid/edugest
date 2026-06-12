@@ -22,6 +22,12 @@ export class ReportesController {
     return this.reportesService.resumenGeneral(gestion ? parseInt(gestion) : undefined);
   }
 
+  @Get('dashboard')
+  @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO, Role.DOCENTE)
+  dashboard(@Query('gestion') gestion?: string) {
+    return this.reportesService.dashboard(gestion ? parseInt(gestion) : undefined);
+  }
+
   @Get('asistencia')
   @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.DOCENTE)
   asistencia(

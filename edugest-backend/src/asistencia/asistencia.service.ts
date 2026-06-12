@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { CreateAsistenciaDto } from './dto/create-asistencia.dto';
 import { CreateAsistenciaMasivaDto } from './dto/create-asistencia-masiva.dto';
 
@@ -9,6 +11,7 @@ export class AsistenciaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly notificaciones: NotificacionesService,
   ) {}
 
   private async notificarPadreSiAusente(inscripcionId: string, fecha: string, estado: string) {
@@ -18,7 +21,7 @@ export class AsistenciaService {
       where: { id: inscripcionId },
       include: {
         estudiante: { include: { padre: true } },
-        curso: { select: { nombre: true, paralelo: true } },
+        curso: { select: { nombre: true, paralelo: true, docenteId: true } },
       },
     });
 
@@ -33,6 +36,43 @@ export class AsistenciaService {
         curso: `${inscripcion.curso.nombre} ${inscripcion.curso.paralelo}`,
       });
     }
+
+    if (inscripcion?.curso?.docenteId) {
+      const docente = await this.prisma.db.docente.findUnique({
+        where: { id: inscripcion.curso.docenteId },
+        select: { usuarioId: true },
+      });
+      if (docente) {
+        await this.notificaciones.notificarUsuario(
+          docente.usuarioId,
+          'Alerta de asistencia',
+          `${inscripcion.estudiante.nombre} ${inscripcion.estudiante.apellido} marcado como ${estado} el ${new Date(fecha).toLocaleDateString('es-BO')}.`,
+        );
+      }
+    }
+
+    await this.notificaciones.notificarPorRoles(
+      [Role.ADMINISTRADOR, Role.DIRECTOR],
+      'Alerta de asistencia',
+      `${inscripcion?.estudiante.nombre} ${inscripcion?.estudiante.apellido} — ${estado} (${new Date(fecha).toLocaleDateString('es-BO')}).`,
+    );
+  }
+
+  private async upsertRegistro(inscripcionId: string, fecha: Date, estado: string) {
+    const existente = await this.prisma.db.asistencia.findFirst({
+      where: { inscripcionId, fecha },
+    });
+
+    if (existente) {
+      return this.prisma.db.asistencia.update({
+        where: { id: existente.id },
+        data: { estado },
+      });
+    }
+
+    return this.prisma.db.asistencia.create({
+      data: { inscripcionId, fecha, estado },
+    });
   }
 
   async create(dto: CreateAsistenciaDto) {
@@ -44,46 +84,35 @@ export class AsistenciaService {
       throw new NotFoundException(`Inscripción con id ${dto.inscripcionId} no encontrada.`);
     }
 
-    const registro = await this.prisma.db.asistencia.create({
-      data: {
-        inscripcionId: dto.inscripcionId,
-        fecha: new Date(dto.fecha),
-        estado: dto.estado,
-      },
+    const fecha = new Date(dto.fecha);
+    const registro = await this.upsertRegistro(dto.inscripcionId, fecha, dto.estado);
+
+    await this.notificarPadreSiAusente(dto.inscripcionId, dto.fecha, dto.estado);
+
+    return this.prisma.db.asistencia.findUnique({
+      where: { id: registro.id },
       include: {
         inscripcion: {
           include: {
-            estudiante: {
-              select: { nombre: true, apellido: true },
-            },
+            estudiante: { select: { nombre: true, apellido: true } },
+            curso: { select: { nombre: true, paralelo: true } },
           },
         },
       },
     });
-
-    await this.notificarPadreSiAusente(dto.inscripcionId, dto.fecha, dto.estado);
-    return registro;
   }
 
   async createMasiva(dto: CreateAsistenciaMasivaDto) {
-    const registros = dto.registros.map((r) => ({
-      inscripcionId: r.inscripcionId,
-      fecha: new Date(dto.fecha),
-      estado: r.estado,
-    }));
-
-    await this.prisma.db.asistencia.createMany({
-      data: registros,
-      skipDuplicates: true,
-    });
+    const fecha = new Date(dto.fecha);
 
     for (const r of dto.registros) {
+      await this.upsertRegistro(r.inscripcionId, fecha, r.estado);
       await this.notificarPadreSiAusente(r.inscripcionId, dto.fecha, r.estado);
     }
 
     return {
-      message: `${registros.length} registros de asistencia guardados para ${dto.fecha}.`,
-      total: registros.length,
+      message: `${dto.registros.length} registros de asistencia guardados para ${dto.fecha}.`,
+      total: dto.registros.length,
     };
   }
 
@@ -99,6 +128,7 @@ export class AsistenciaService {
             estudiante: {
               select: { id: true, nombre: true, apellido: true, ci: true },
             },
+            curso: { select: { id: true, nombre: true, paralelo: true } },
           },
         },
       },

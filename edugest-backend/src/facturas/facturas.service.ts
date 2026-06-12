@@ -1,30 +1,23 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
+import { CucuService } from './cucu.service';
 
 @Injectable()
 export class FacturasService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private generarCUF(): string {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `CUF-${timestamp}-${random}`;
-  }
-
-  private generarNroFactura(): number {
-    return Math.floor(Math.random() * 900000) + 100000;
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+    private readonly cucu: CucuService,
+  ) {}
 
   async emitir(pagoId: string) {
-    // Verificar que el pago existe
     const pago = await this.prisma.db.pago.findUnique({
       where: { id: pagoId },
       include: {
         inscripcion: {
           include: {
-            estudiante: {
-              include: { padre: true },
-            },
+            estudiante: { include: { padre: true } },
             curso: true,
           },
         },
@@ -41,35 +34,46 @@ export class FacturasService {
       throw new ConflictException('Este pago ya tiene una factura emitida.');
     }
 
-    // Simular llamada a API CUCU
-    const cuf = this.generarCUF();
-    const nroFactura = this.generarNroFactura();
+    const padre = pago.inscripcion.estudiante.padre;
+    const emision = await this.cucu.emitirFactura({
+      monto: Number(pago.monto),
+      metodoPago: pago.metodoPago,
+      nombreCliente: padre ? `${padre.nombre} ${padre.apellido}` : `${pago.inscripcion.estudiante.nombre} ${pago.inscripcion.estudiante.apellido}`,
+      ciCliente: padre?.ci || pago.inscripcion.estudiante.ci,
+      descripcion: `Pago ${pago.mes} ${pago.gestion} - ${pago.inscripcion.curso.nombre}`,
+    });
 
-    // Crear factura en BD
     const factura = await this.prisma.db.factura.create({
       data: {
         pagoId,
-        cuf,
-        nroFactura,
-        estado: 'EMITIDA',
+        cuf: emision.cuf,
+        nroFactura: emision.nroFactura,
+        estado: emision.estado,
+        pdfUrl: emision.pdfUrl,
         fechaEmision: new Date(),
       },
       include: {
         pago: {
           include: {
             inscripcion: {
-              include: {
-                estudiante: true,
-                curso: true,
-              },
+              include: { estudiante: true, curso: true },
             },
-            cajero: {
-              select: { nombre: true, apellido: true },
-            },
+            cajero: { select: { nombre: true, apellido: true } },
           },
         },
       },
     });
+
+    if (padre?.email) {
+      await this.mail.enviarFactura({
+        email: padre.email,
+        nombreCliente: `${padre.nombre} ${padre.apellido}`,
+        cuf: factura.cuf,
+        nroFactura: factura.nroFactura,
+        monto: Number(pago.monto),
+        pdfUrl: factura.pdfUrl || undefined,
+      });
+    }
 
     return factura;
   }
@@ -81,17 +85,11 @@ export class FacturasService {
           include: {
             inscripcion: {
               include: {
-                estudiante: {
-                  select: { nombre: true, apellido: true, ci: true },
-                },
-                curso: {
-                  select: { nombre: true, paralelo: true },
-                },
+                estudiante: { select: { nombre: true, apellido: true, ci: true } },
+                curso: { select: { nombre: true, paralelo: true } },
               },
             },
-            cajero: {
-              select: { nombre: true, apellido: true },
-            },
+            cajero: { select: { nombre: true, apellido: true } },
           },
         },
       },
@@ -107,9 +105,7 @@ export class FacturasService {
           include: {
             inscripcion: {
               include: {
-                estudiante: {
-                  include: { padre: true },
-                },
+                estudiante: { include: { padre: true } },
                 curso: true,
               },
             },
@@ -124,6 +120,45 @@ export class FacturasService {
     }
 
     return factura;
+  }
+
+  async consultarEstado(id: string) {
+    const factura = await this.findOne(id);
+    const estadoCucu = await this.cucu.consultarEstado(factura.cuf);
+
+    if (estadoCucu.estado !== factura.estado) {
+      return this.prisma.db.factura.update({
+        where: { id },
+        data: { estado: estadoCucu.estado },
+      });
+    }
+
+    return factura;
+  }
+
+  async validarSin(id: string) {
+    const factura = await this.findOne(id);
+    return this.cucu.validarAnteSin(factura.cuf);
+  }
+
+  async reenviarCorreo(id: string) {
+    const factura = await this.findOne(id);
+    const padre = factura.pago.inscripcion.estudiante.padre;
+
+    if (!padre?.email) {
+      throw new NotFoundException('El padre de familia no tiene correo registrado.');
+    }
+
+    await this.mail.enviarFactura({
+      email: padre.email,
+      nombreCliente: `${padre.nombre} ${padre.apellido}`,
+      cuf: factura.cuf,
+      nroFactura: factura.nroFactura,
+      monto: Number(factura.pago.monto),
+      pdfUrl: factura.pdfUrl || undefined,
+    });
+
+    return { message: 'Factura reenviada por correo exitosamente.' };
   }
 
   async anular(id: string) {

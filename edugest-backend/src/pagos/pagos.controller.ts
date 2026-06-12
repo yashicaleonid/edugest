@@ -18,13 +18,18 @@ export class PagosController {
     return this.pagosService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.pagosService.findOne(id);
-  }
-
   @Get('inscripcion/:inscripcionId')
   findByInscripcion(@Param('inscripcionId') inscripcionId: string) {
     return this.pagosService.findByInscripcion(inscripcionId);
+  }
+
+  @Get('deudas/:gestion')
+  findDeudas(@Param('gestion') gestion: string) {
+    return this.pagosService.getDeudas(parseInt(gestion));
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.pagosService.findOne(id);
   }
 }

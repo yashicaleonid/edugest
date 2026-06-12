@@ -14,21 +14,31 @@ enum Role {
   DOCENTE
 }
 
-model Usuario {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  nombre    String
-  apellido  String
-  ci        String   @unique
-  role      Role     @default(ADMINISTRADOR)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum CategoriaDocumento {
+  FOTO_ESTUDIANTE
+  COMPROBANTE_PAGO
+  DOCUMENTO_INSTITUCIONAL
+  OTRO
+}
 
-  docente      Docente?
-  pagos        Pago[]
+model Usuario {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String
+  nombre           String
+  apellido         String
+  ci               String    @unique
+  role             Role      @default(ADMINISTRADOR)
+  isActive         Boolean   @default(true)
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  docente        Docente?
+  pagos          Pago[]
   notificaciones Notificacion[]
+  documentos     Documento[]
 
   @@map("usuarios")
 }
@@ -60,6 +70,7 @@ model Estudiante {
   padreId     String
   padre       PadreFamilia  @relation(fields: [padreId], references: [id])
   inscripciones Inscripcion[]
+  documentos  Documento[]
 
   @@map("estudiantes")
 }
@@ -83,6 +94,7 @@ model Curso {
   paralelo  String
   turno     String
   gestion   Int
+  cupo      Int      @default(30)
   createdAt DateTime @default(now())
 
   docenteId    String?
@@ -106,6 +118,7 @@ model Inscripcion {
   pagos       Pago[]
   asistencias Asistencia[]
 
+  @@unique([estudianteId, cursoId, gestion])
   @@map("inscripciones")
 }
 
@@ -132,6 +145,7 @@ model Factura {
   cuf          String   @unique
   nroFactura   Int
   estado       String   @default("PENDIENTE")
+  pdfUrl       String?
   fechaEmision DateTime @default(now())
 
   pagoId       String   @unique
@@ -162,4 +176,22 @@ model Notificacion {
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   @@map("notificaciones")
+}
+
+model Documento {
+  id        String             @id @default(uuid())
+  nombre    String
+  url       String
+  publicId  String
+  categoria CategoriaDocumento @default(OTRO)
+  mimeType  String?
+  size      Int?
+  createdAt DateTime           @default(now())
+
+  estudianteId String?
+  estudiante   Estudiante? @relation(fields: [estudianteId], references: [id])
+  subidoPorId  String?
+  subidoPor    Usuario?    @relation(fields: [subidoPorId], references: [id])
+
+  @@map("documentos")
 }

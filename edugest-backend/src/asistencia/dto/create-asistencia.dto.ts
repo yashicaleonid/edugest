@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsDateString } from 'class-validator';
+import { IsString, IsUUID, IsDateString, IsIn } from 'class-validator';
 
 export class CreateAsistenciaDto {
   @IsUUID()
@@ -8,5 +8,8 @@ export class CreateAsistenciaDto {
   fecha: string;
 
   @IsString()
-  estado: string; // PRESENTE, AUSENTE, TARDANZA
+  @IsIn(['PRESENTE', 'AUSENTE', 'RETRASO', 'PERMISO'], {
+    message: 'El estado debe ser PRESENTE, AUSENTE, RETRASO o PERMISO.',
+  })
+  estado: string;
 }

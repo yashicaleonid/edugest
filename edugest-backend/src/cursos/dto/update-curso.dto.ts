@@ -24,4 +24,8 @@ export class UpdateCursoDto {
   @IsOptional()
   @IsUUID()
   docenteId?: string;
+
+  @IsOptional()
+  @IsInt()
+  cupo?: number;
 }

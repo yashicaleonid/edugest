@@ -44,6 +44,7 @@ export type Curso = {
   paralelo: string;
   turno: string;
   gestion: number;
+  cupo?: number;
   docenteId?: string;
   docente?: Docente;
 }
@@ -77,6 +78,7 @@ export type Factura = {
   cuf: string;
   nroFactura: number;
   estado: string;
+  pdfUrl?: string;
   fechaEmision: string;
   pagoId: string;
 }

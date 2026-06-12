@@ -108,4 +108,38 @@ export class PagosService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async getDeudas(gestion: number) {
+    const MESES = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    ];
+    const mesActual = new Date().getMonth();
+
+    const inscripciones = await this.prisma.db.inscripcion.findMany({
+      where: { gestion, estado: 'ACTIVO' },
+      include: {
+        estudiante: { include: { padre: true } },
+        curso: { select: { nombre: true, paralelo: true } },
+        pagos: { select: { mes: true } },
+      },
+    });
+
+    return inscripciones
+      .map((inscripcion) => {
+        const mesesPagados = inscripcion.pagos.map((p) => p.mes);
+        const mesesPendientes = MESES.slice(0, mesActual + 1).filter(
+          (mes) => !mesesPagados.includes(mes),
+        );
+        if (mesesPendientes.length === 0) return null;
+        return {
+          inscripcionId: inscripcion.id,
+          estudiante: `${inscripcion.estudiante.nombre} ${inscripcion.estudiante.apellido}`,
+          curso: `${inscripcion.curso.nombre} ${inscripcion.curso.paralelo}`,
+          padre: inscripcion.estudiante.padre?.email,
+          mesesPendientes,
+        };
+      })
+      .filter(Boolean);
+  }
 }

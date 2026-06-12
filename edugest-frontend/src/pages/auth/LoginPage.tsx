@@ -95,6 +95,14 @@ export default function LoginPage() {
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Ingresar'}
             </Button>
+            <Button
+              fullWidth
+              onClick={() => navigate('/forgot-password')}
+              sx={{ mt: 1 }}
+              size="small"
+            >
+              ¿Olvidó su contraseña?
+            </Button>
           </Box>
         </CardContent>
       </Card>

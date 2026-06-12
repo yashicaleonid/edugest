@@ -13,6 +13,8 @@ import { AsistenciaModule } from './asistencia/asistencia.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { FacturasModule } from './facturas/facturas.module';
 import { MailModule } from './mail/mail.module';
+import { DocumentosModule } from './documentos/documentos.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { MailModule } from './mail/mail.module';
     AsistenciaModule,
     NotificacionesModule,
     FacturasModule,
+    DocumentosModule,
+    ReportesModule,
   ],
 })
 export class AppModule {}

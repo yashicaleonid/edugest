@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { CreateInscripcionDto } from './dto/create-inscripcion.dto';
@@ -16,6 +16,16 @@ export class InscripcionesService {
       where: { estudianteId: dto.estudianteId, cursoId: dto.cursoId, gestion: dto.gestion },
     });
     if (existe) throw new ConflictException('El estudiante ya esta inscrito en este curso para esta gestion.');
+
+    const curso = await this.prisma.db.curso.findUnique({
+      where: { id: dto.cursoId },
+      include: { _count: { select: { inscripciones: true } } },
+    });
+    if (!curso) throw new NotFoundException('Curso no encontrado.');
+
+    if (curso._count.inscripciones >= curso.cupo) {
+      throw new BadRequestException(`El curso ha alcanzado su cupo máximo de ${curso.cupo} estudiantes.`);
+    }
 
     const inscripcion = await this.prisma.db.inscripcion.create({
       data: dto,

@@ -32,7 +32,7 @@ type Curso = {
   gestion: number;
 };
  
-const ESTADOS = ['PRESENTE', 'AUSENTE', 'TARDANZA'];
+const ESTADOS = ['PRESENTE', 'AUSENTE', 'RETRASO', 'PERMISO'];
  
 export default function AsistenciaPage() {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);

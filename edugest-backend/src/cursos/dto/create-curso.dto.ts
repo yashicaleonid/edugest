@@ -19,4 +19,8 @@ export class CreateCursoDto {
   @IsOptional()
   @IsUUID()
   docenteId?: string;
+
+  @IsOptional()
+  @IsInt()
+  cupo?: number;
 }

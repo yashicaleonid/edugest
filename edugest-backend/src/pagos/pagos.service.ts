@@ -1,51 +1,34 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreatePagoDto } from './dto/create-pago.dto';
 
 @Injectable()
 export class PagosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   async create(dto: CreatePagoDto) {
-    // Verificar que la inscripción existe
     const inscripcion = await this.prisma.db.inscripcion.findUnique({
       where: { id: dto.inscripcionId },
       include: {
-        estudiante: {
-          select: { nombre: true, apellido: true },
-        },
+        estudiante: { include: { padre: true } },
+        curso: { select: { nombre: true, paralelo: true } },
       },
     });
+    if (!inscripcion) throw new NotFoundException(`Inscripcion con id ${dto.inscripcionId} no encontrada.`);
 
-    if (!inscripcion) {
-      throw new NotFoundException(`Inscripción con id ${dto.inscripcionId} no encontrada.`);
-    }
-
-    // Verificar que no exista ya un pago para ese mes y gestión
     const pagoExiste = await this.prisma.db.pago.findFirst({
-      where: {
-        inscripcionId: dto.inscripcionId,
-        mes: dto.mes,
-        gestion: dto.gestion,
-      },
+      where: { inscripcionId: dto.inscripcionId, mes: dto.mes, gestion: dto.gestion },
     });
+    if (pagoExiste) throw new ConflictException(`Ya existe un pago registrado para ${dto.mes} de ${dto.gestion}.`);
 
-    if (pagoExiste) {
-      throw new ConflictException(
-        `Ya existe un pago registrado para ${dto.mes} de ${dto.gestion}.`,
-      );
-    }
+    const cajero = await this.prisma.db.usuario.findUnique({ where: { id: dto.cajeroId } });
+    if (!cajero) throw new NotFoundException(`Cajero con id ${dto.cajeroId} no encontrado.`);
 
-    // Verificar que el cajero existe
-    const cajero = await this.prisma.db.usuario.findUnique({
-      where: { id: dto.cajeroId },
-    });
-
-    if (!cajero) {
-      throw new NotFoundException(`Cajero con id ${dto.cajeroId} no encontrado.`);
-    }
-
-    return this.prisma.db.pago.create({
+    const pago = await this.prisma.db.pago.create({
       data: {
         inscripcionId: dto.inscripcionId,
         cajeroId: dto.cajeroId,
@@ -57,19 +40,31 @@ export class PagosService {
       include: {
         inscripcion: {
           include: {
-            estudiante: {
-              select: { nombre: true, apellido: true, ci: true },
-            },
-            curso: {
-              select: { nombre: true, nivel: true, paralelo: true },
-            },
+            estudiante: { select: { nombre: true, apellido: true, ci: true } },
+            curso: { select: { nombre: true, nivel: true, paralelo: true } },
           },
         },
-        cajero: {
-          select: { nombre: true, apellido: true, role: true },
-        },
+        cajero: { select: { nombre: true, apellido: true, role: true } },
       },
     });
+
+    // Enviar correo al padre si tiene email
+    if (inscripcion.estudiante?.padre?.email) {
+      await this.mail.enviarConfirmacionPago({
+        emailPadre: inscripcion.estudiante.padre.email,
+        nombrePadre: `${inscripcion.estudiante.padre.nombre} ${inscripcion.estudiante.padre.apellido}`,
+        nombreEstudiante: inscripcion.estudiante.nombre,
+        apellidoEstudiante: inscripcion.estudiante.apellido,
+        curso: `${inscripcion.curso.nombre} ${inscripcion.curso.paralelo}`,
+        mes: dto.mes,
+        gestion: dto.gestion,
+        monto: dto.monto,
+        metodoPago: dto.metodoPago,
+        cajero: `${cajero.nombre} ${cajero.apellido}`,
+      });
+    }
+
+    return pago;
   }
 
   async findAll() {
@@ -77,17 +72,11 @@ export class PagosService {
       include: {
         inscripcion: {
           include: {
-            estudiante: {
-              select: { nombre: true, apellido: true, ci: true },
-            },
-            curso: {
-              select: { nombre: true, nivel: true, paralelo: true },
-            },
+            estudiante: { select: { nombre: true, apellido: true, ci: true } },
+            curso: { select: { nombre: true, nivel: true, paralelo: true } },
           },
         },
-        cajero: {
-          select: { nombre: true, apellido: true },
-        },
+        cajero: { select: { nombre: true, apellido: true } },
         factura: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -100,33 +89,22 @@ export class PagosService {
       include: {
         inscripcion: {
           include: {
-            estudiante: true,
+            estudiante: { include: { padre: true } },
             curso: true,
           },
         },
-        cajero: {
-          select: { nombre: true, apellido: true, email: true },
-        },
+        cajero: { select: { nombre: true, apellido: true, email: true } },
         factura: true,
       },
     });
-
-    if (!pago) {
-      throw new NotFoundException(`Pago con id ${id} no encontrado.`);
-    }
-
+    if (!pago) throw new NotFoundException(`Pago con id ${id} no encontrado.`);
     return pago;
   }
 
   async findByInscripcion(inscripcionId: string) {
     return this.prisma.db.pago.findMany({
       where: { inscripcionId },
-      include: {
-        factura: true,
-        cajero: {
-          select: { nombre: true, apellido: true },
-        },
-      },
+      include: { factura: true, cajero: { select: { nombre: true, apellido: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }

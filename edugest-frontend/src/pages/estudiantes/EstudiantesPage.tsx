@@ -8,14 +8,14 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import api from '../../api/axios';
-
+ 
 type Padre = {
   id: string;
   nombre: string;
   apellido: string;
   telefono?: string;
 };
-
+ 
 type Estudiante = {
   id: string;
   nombre: string;
@@ -25,7 +25,7 @@ type Estudiante = {
   isActive: boolean;
   padre?: Padre;
 };
-
+ 
 type PadreForm = {
   nombre: string;
   apellido: string;
@@ -33,14 +33,14 @@ type PadreForm = {
   telefono: string;
   email: string;
 };
-
+ 
 type EstudianteForm = {
   nombre: string;
   apellido: string;
   ci: string;
   fechaNac: string;
 };
-
+ 
 export default function EstudiantesPage() {
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,19 +49,19 @@ export default function EstudiantesPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [selectedEstudiante, setSelectedEstudiante] = useState<Estudiante | null>(null);
-
+ 
   const [padreForm, setPadreForm] = useState<PadreForm>({
     nombre: '', apellido: '', ci: '', telefono: '', email: '',
   });
-
+ 
   const [estudianteForm, setEstudianteForm] = useState<EstudianteForm>({
     nombre: '', apellido: '', ci: '', fechaNac: '',
   });
-
+ 
   const [editForm, setEditForm] = useState<EstudianteForm>({
     nombre: '', apellido: '', ci: '', fechaNac: '',
   });
-
+ 
   const fetchEstudiantes = async () => {
     try {
       const { data } = await api.get('/estudiantes');
@@ -72,20 +72,15 @@ export default function EstudiantesPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchEstudiantes();
-  }, []);
-
+ 
+  useEffect(() => { fetchEstudiantes(); }, []);
+ 
   const handleSubmit = async () => {
     setError('');
     setSaving(true);
     try {
       const { data: padre } = await api.post('/padres', padreForm);
-      await api.post('/estudiantes', {
-        ...estudianteForm,
-        padreId: padre.id,
-      });
+      await api.post('/estudiantes', { ...estudianteForm, padreId: padre.id });
       setOpen(false);
       setPadreForm({ nombre: '', apellido: '', ci: '', telefono: '', email: '' });
       setEstudianteForm({ nombre: '', apellido: '', ci: '', fechaNac: '' });
@@ -96,7 +91,7 @@ export default function EstudiantesPage() {
       setSaving(false);
     }
   };
-
+ 
   const handleEditOpen = (estudiante: Estudiante) => {
     setSelectedEstudiante(estudiante);
     setEditForm({
@@ -107,7 +102,7 @@ export default function EstudiantesPage() {
     });
     setEditOpen(true);
   };
-
+ 
   const handleEditSubmit = async () => {
     if (!selectedEstudiante) return;
     setError('');
@@ -122,18 +117,18 @@ export default function EstudiantesPage() {
       setSaving(false);
     }
   };
-
+ 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">Estudiantes</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Estudiantes</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
           Nuevo Estudiante
         </Button>
       </Box>
-
+ 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
           <TableContainer>
@@ -179,22 +174,21 @@ export default function EstudiantesPage() {
           </TableContainer>
         </Card>
       )}
-
-      {/* Dialog nuevo estudiante */}
+ 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">Registrar Nuevo Estudiante</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Registrar Nuevo Estudiante</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Typography variant="subtitle2" color="text.secondary" mt={1} mb={1}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1, mb: 1 }}>
             Datos del Padre/Madre de Familia
           </Typography>
-          <Box display="flex" gap={2}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField label="Nombre" fullWidth size="small" value={padreForm.nombre}
               onChange={(e) => setPadreForm({ ...padreForm, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={padreForm.apellido}
               onChange={(e) => setPadreForm({ ...padreForm, apellido: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="CI" fullWidth size="small" value={padreForm.ci}
               onChange={(e) => setPadreForm({ ...padreForm, ci: e.target.value })} />
             <TextField label="Teléfono" fullWidth size="small" value={padreForm.telefono}
@@ -202,21 +196,21 @@ export default function EstudiantesPage() {
           </Box>
           <TextField label="Email" fullWidth size="small" sx={{ mt: 2 }} value={padreForm.email}
             onChange={(e) => setPadreForm({ ...padreForm, email: e.target.value })} />
-
-          <Typography variant="subtitle2" color="text.secondary" mt={3} mb={1}>
+ 
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>
             Datos del Estudiante
           </Typography>
-          <Box display="flex" gap={2}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField label="Nombre" fullWidth size="small" value={estudianteForm.nombre}
               onChange={(e) => setEstudianteForm({ ...estudianteForm, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={estudianteForm.apellido}
               onChange={(e) => setEstudianteForm({ ...estudianteForm, apellido: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="CI" fullWidth size="small" value={estudianteForm.ci}
               onChange={(e) => setEstudianteForm({ ...estudianteForm, ci: e.target.value })} />
             <TextField label="Fecha de Nacimiento" fullWidth size="small" type="date"
-              InputLabelProps={{ shrink: true }} value={estudianteForm.fechaNac}
+              slotProps={{ inputLabel: { shrink: true } }} value={estudianteForm.fechaNac}
               onChange={(e) => setEstudianteForm({ ...estudianteForm, fechaNac: e.target.value })} />
           </Box>
         </DialogContent>
@@ -227,25 +221,24 @@ export default function EstudiantesPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Dialog editar estudiante */}
+ 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
           Editar Estudiante — {selectedEstudiante?.apellido}, {selectedEstudiante?.nombre}
         </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box display="flex" gap={2} mt={1}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
             <TextField label="Nombre" fullWidth size="small" value={editForm.nombre}
               onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={editForm.apellido}
               onChange={(e) => setEditForm({ ...editForm, apellido: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="CI" fullWidth size="small" value={editForm.ci}
               onChange={(e) => setEditForm({ ...editForm, ci: e.target.value })} />
             <TextField label="Fecha de Nacimiento" fullWidth size="small" type="date"
-              InputLabelProps={{ shrink: true }} value={editForm.fechaNac}
+              slotProps={{ inputLabel: { shrink: true } }} value={editForm.fechaNac}
               onChange={(e) => setEditForm({ ...editForm, fechaNac: e.target.value })} />
           </Box>
         </DialogContent>

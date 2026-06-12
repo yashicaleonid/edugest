@@ -132,15 +132,15 @@ export default function CursosPage() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">Cursos</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Cursos</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
           Nuevo Curso
         </Button>
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
           <TableContainer>
@@ -195,14 +195,13 @@ export default function CursosPage() {
         </Card>
       )}
 
-      {/* Dialog nuevo curso */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">Crear Nuevo Curso</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Crear Nuevo Curso</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <TextField label="Nombre del Curso" fullWidth size="small" sx={{ mt: 2 }}
             value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField select fullWidth label="Nivel" size="small" value={form.nivel}
               onChange={(e) => setForm({ ...form, nivel: e.target.value })}>
               {NIVELES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
@@ -212,7 +211,7 @@ export default function CursosPage() {
               {PARALELOS.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
             </TextField>
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField select fullWidth label="Turno" size="small" value={form.turno}
               onChange={(e) => setForm({ ...form, turno: e.target.value })}>
               {TURNOS.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
@@ -238,16 +237,15 @@ export default function CursosPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog editar curso */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
           Editar Curso — {selectedCurso?.nombre}
         </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <TextField label="Nombre del Curso" fullWidth size="small" sx={{ mt: 2 }}
             value={editForm.nombre} onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} />
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField select fullWidth label="Nivel" size="small" value={editForm.nivel}
               onChange={(e) => setEditForm({ ...editForm, nivel: e.target.value })}>
               {NIVELES.map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
@@ -257,7 +255,7 @@ export default function CursosPage() {
               {PARALELOS.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
             </TextField>
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField select fullWidth label="Turno" size="small" value={editForm.turno}
               onChange={(e) => setEditForm({ ...editForm, turno: e.target.value })}>
               {TURNOS.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}

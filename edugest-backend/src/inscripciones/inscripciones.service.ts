@@ -1,70 +1,50 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreateInscripcionDto } from './dto/create-inscripcion.dto';
 import { UpdateInscripcionDto } from './dto/update-inscripcion.dto';
 
 @Injectable()
 export class InscripcionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   async create(dto: CreateInscripcionDto) {
-    // Verificar que no esté ya inscrito en el mismo curso y gestión
     const existe = await this.prisma.db.inscripcion.findFirst({
-      where: {
-        estudianteId: dto.estudianteId,
-        cursoId: dto.cursoId,
-        gestion: dto.gestion,
-      },
+      where: { estudianteId: dto.estudianteId, cursoId: dto.cursoId, gestion: dto.gestion },
     });
+    if (existe) throw new ConflictException('El estudiante ya esta inscrito en este curso para esta gestion.');
 
-    if (existe) {
-      throw new ConflictException('El estudiante ya está inscrito en este curso para esta gestión.');
-    }
-
-    return this.prisma.db.inscripcion.create({
+    const inscripcion = await this.prisma.db.inscripcion.create({
       data: dto,
       include: {
-        estudiante: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            ci: true,
-          },
-        },
-        curso: {
-          select: {
-            id: true,
-            nombre: true,
-            nivel: true,
-            paralelo: true,
-            gestion: true,
-          },
-        },
+        estudiante: { include: { padre: true } },
+        curso: { select: { id: true, nombre: true, nivel: true, paralelo: true, gestion: true } },
       },
     });
+
+    // Enviar correo al padre si tiene email
+    if (inscripcion.estudiante?.padre?.email) {
+      await this.mail.enviarConfirmacionInscripcion({
+        emailPadre: inscripcion.estudiante.padre.email,
+        nombrePadre: `${inscripcion.estudiante.padre.nombre} ${inscripcion.estudiante.padre.apellido}`,
+        nombreEstudiante: inscripcion.estudiante.nombre,
+        apellidoEstudiante: inscripcion.estudiante.apellido,
+        curso: `${inscripcion.curso.nombre} ${inscripcion.curso.paralelo}`,
+        gestion: inscripcion.gestion,
+      });
+    }
+
+    return inscripcion;
   }
 
   async findAll() {
     return this.prisma.db.inscripcion.findMany({
       include: {
-        estudiante: {
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            ci: true,
-          },
-        },
-        curso: {
-          select: {
-            id: true,
-            nombre: true,
-            nivel: true,
-            paralelo: true,
-            gestion: true,
-          },
-        },
+        estudiante: { select: { id: true, nombre: true, apellido: true, ci: true } },
+        curso: { select: { id: true, nombre: true, nivel: true, paralelo: true, turno: true, gestion: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -74,43 +54,28 @@ export class InscripcionesService {
     const inscripcion = await this.prisma.db.inscripcion.findUnique({
       where: { id },
       include: {
-        estudiante: true,
+        estudiante: { include: { padre: true } },
         curso: {
           include: {
-            docente: {
-              include: {
-                usuario: {
-                  select: { nombre: true, apellido: true },
-                },
-              },
-            },
+            docente: { include: { usuario: { select: { nombre: true, apellido: true } } } },
           },
         },
-        pagos: true,
+        pagos: { include: { factura: true, cajero: { select: { nombre: true, apellido: true } } } },
         asistencias: true,
       },
     });
-
-    if (!inscripcion) {
-      throw new NotFoundException(`Inscripción con id ${id} no encontrada.`);
-    }
-
+    if (!inscripcion) throw new NotFoundException(`Inscripcion con id ${id} no encontrada.`);
     return inscripcion;
   }
 
   async update(id: string, dto: UpdateInscripcionDto) {
     await this.findOne(id);
-
     return this.prisma.db.inscripcion.update({
       where: { id },
       data: dto,
       include: {
-        estudiante: {
-          select: { nombre: true, apellido: true },
-        },
-        curso: {
-          select: { nombre: true, nivel: true, paralelo: true },
-        },
+        estudiante: { select: { nombre: true, apellido: true } },
+        curso: { select: { nombre: true, nivel: true, paralelo: true } },
       },
     });
   }

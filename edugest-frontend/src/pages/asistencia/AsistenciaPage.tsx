@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import api from '../../api/axios';
-
+ 
 type Asistencia = {
   id: string;
   fecha: string;
@@ -17,23 +17,23 @@ type Asistencia = {
     curso?: { nombre: string; paralelo: string };
   };
 };
-
+ 
 type Inscripcion = {
   id: string;
   gestion: number;
   estudiante?: { nombre: string; apellido: string };
   curso?: { nombre: string; paralelo: string };
 };
-
+ 
 type Curso = {
   id: string;
   nombre: string;
   paralelo: string;
   gestion: number;
 };
-
+ 
 const ESTADOS = ['PRESENTE', 'AUSENTE', 'TARDANZA'];
-
+ 
 export default function AsistenciaPage() {
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [inscripciones, setInscripciones] = useState<Inscripcion[]>([]);
@@ -43,12 +43,11 @@ export default function AsistenciaPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [cursoSeleccionado, setCursoSeleccionado] = useState('');
-
+ 
   const hoy = new Date().toISOString().split('T')[0];
-
   const [registros, setRegistros] = useState<{ inscripcionId: string; estado: string }[]>([]);
   const [fecha, setFecha] = useState(hoy);
-
+ 
   const fetchData = async () => {
     try {
       const [inscripcionesRes, cursosRes] = await Promise.all([
@@ -63,7 +62,7 @@ export default function AsistenciaPage() {
       setLoading(false);
     }
   };
-
+ 
   const fetchAsistenciasCurso = async (cursoId: string) => {
     try {
       const { data } = await api.get(`/asistencia/curso/${cursoId}`);
@@ -72,40 +71,31 @@ export default function AsistenciaPage() {
       setAsistencias([]);
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
+ 
+  useEffect(() => { fetchData(); }, []);
+ 
   const handleCursoChange = (cursoId: string) => {
     setCursoSeleccionado(cursoId);
     fetchAsistenciasCurso(cursoId);
-
-    // Preparar registros para ese curso
     const inscripcionesCurso = inscripciones.filter(
       (i) => i.curso && cursos.find((c) => c.id === cursoId)
         ? i.curso.nombre === cursos.find((c) => c.id === cursoId)?.nombre
         : false
     );
-    setRegistros(
-      inscripcionesCurso.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' }))
-    );
+    setRegistros(inscripcionesCurso.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' })));
   };
-
+ 
   const handleOpenDialog = () => {
-    // Cargar todas las inscripciones como registros
-    setRegistros(
-      inscripciones.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' }))
-    );
+    setRegistros(inscripciones.map((i) => ({ inscripcionId: i.id, estado: 'PRESENTE' })));
     setOpen(true);
   };
-
+ 
   const handleEstadoChange = (inscripcionId: string, estado: string) => {
     setRegistros((prev) =>
       prev.map((r) => r.inscripcionId === inscripcionId ? { ...r, estado } : r)
     );
   };
-
+ 
   const handleSubmit = async () => {
     setError('');
     setSaving(true);
@@ -119,30 +109,22 @@ export default function AsistenciaPage() {
       setSaving(false);
     }
   };
-
+ 
   const getEstadoColor = (estado: string) => {
     if (estado === 'PRESENTE') return 'success';
     if (estado === 'AUSENTE') return 'error';
     return 'warning';
   };
-
+ 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          Asistencia
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenDialog}
-          sx={{ borderRadius: 2 }}
-        >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Asistencia</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog} sx={{ borderRadius: 2 }}>
           Registrar Asistencia
         </Button>
       </Box>
-
-      {/* Filtro por curso */}
+ 
       <Card sx={{ borderRadius: 3, boxShadow: 2, p: 2, mb: 3 }}>
         <TextField
           select label="Filtrar por Curso" size="small" sx={{ minWidth: 300 }}
@@ -156,11 +138,9 @@ export default function AsistenciaPage() {
           ))}
         </TextField>
       </Card>
-
+ 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={5}>
-          <CircularProgress />
-        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
           <TableContainer>
@@ -186,15 +166,9 @@ export default function AsistenciaPage() {
                         ? `${a.inscripcion.curso.nombre} ${a.inscripcion.curso.paralelo}`
                         : '—'}
                     </TableCell>
+                    <TableCell>{new Date(a.fecha).toLocaleDateString('es-BO')}</TableCell>
                     <TableCell>
-                      {new Date(a.fecha).toLocaleDateString('es-BO')}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={a.estado}
-                        color={getEstadoColor(a.estado) as any}
-                        size="small"
-                      />
+                      <Chip label={a.estado} color={getEstadoColor(a.estado) as any} size="small" />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -212,35 +186,28 @@ export default function AsistenciaPage() {
           </TableContainer>
         </Card>
       )}
-
-      {/* Dialog para registrar asistencia masiva */}
+ 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">Registrar Asistencia</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Registrar Asistencia</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
           <TextField
             fullWidth label="Fecha" type="date" size="small" sx={{ mt: 2, mb: 3 }}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
           />
-
-          <Typography variant="subtitle2" color="text.secondary" mb={1}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
             Marcar estado por estudiante
           </Typography>
-
           {inscripciones.map((i) => (
             <Box
               key={i.id}
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              sx={{ py: 1, borderBottom: '1px solid #f1f5f9' }}
+              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #f1f5f9' }}
             >
               <Typography variant="body2">
                 {i.estudiante?.apellido}, {i.estudiante?.nombre}
-                <Typography component="span" variant="caption" color="text.secondary" ml={1}>
+                <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                   {i.curso?.nombre} {i.curso?.paralelo}
                 </Typography>
               </Typography>
@@ -257,15 +224,8 @@ export default function AsistenciaPage() {
           ))}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setOpen(false)} color="inherit">
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disabled={saving}
-            sx={{ borderRadius: 2 }}
-          >
+          <Button onClick={() => setOpen(false)} color="inherit">Cancelar</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
             {saving ? <CircularProgress size={20} color="inherit" /> : 'Guardar Asistencia'}
           </Button>
         </DialogActions>
@@ -273,3 +233,4 @@ export default function AsistenciaPage() {
     </Box>
   );
 }
+ 

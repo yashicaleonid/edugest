@@ -57,10 +57,10 @@ export default function LoginPage() {
     >
       <Card sx={{ width: 400, borderRadius: 3, boxShadow: 4 }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" fontWeight="bold" color="primary" textAlign="center" mb={1}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 1 }} color="primary">
             EduGest
           </Typography>
-          <Typography variant="body2" color="text.secondary" textAlign="center" mb={3}>
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 3 }}>
             Sistema de Gestión Escolar
           </Typography>
 

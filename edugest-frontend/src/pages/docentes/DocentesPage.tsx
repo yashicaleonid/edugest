@@ -73,10 +73,7 @@ export default function DocentesPage() {
     setError('');
     setSaving(true);
     try {
-      const { data: usuario } = await api.post('/auth/register', {
-        ...usuarioForm,
-        role: 'DOCENTE',
-      });
+      const { data: usuario } = await api.post('/auth/register', { ...usuarioForm, role: 'DOCENTE' });
       await api.post('/docentes', { usuarioId: usuario.id });
       setOpen(false);
       setUsuarioForm({ nombre: '', apellido: '', ci: '', email: '', password: '' });
@@ -105,11 +102,7 @@ export default function DocentesPage() {
     setError('');
     setSaving(true);
     try {
-      // Actualizar perfil docente
-      await api.patch(`/docentes/${selectedDocente.id}`, {
-        telefono: editForm.telefono,
-      });
-      // Actualizar datos del usuario
+      await api.patch(`/docentes/${selectedDocente.id}`, { telefono: editForm.telefono });
       await api.patch(`/usuarios/${selectedDocente.usuario.id}`, {
         nombre: editForm.nombre,
         apellido: editForm.apellido,
@@ -127,15 +120,15 @@ export default function DocentesPage() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">Docentes</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Docentes</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
           Nuevo Docente
         </Button>
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
           <TableContainer>
@@ -185,13 +178,12 @@ export default function DocentesPage() {
         </Card>
       )}
 
-      {/* Dialog nuevo docente */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">Registrar Nuevo Docente</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Registrar Nuevo Docente</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Typography variant="subtitle2" color="text.secondary" mt={1} mb={1}>Datos Personales</Typography>
-          <Box display="flex" gap={2}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1, mb: 1 }}>Datos Personales</Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField label="Nombre" fullWidth size="small" value={usuarioForm.nombre}
               onChange={(e) => setUsuarioForm({ ...usuarioForm, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={usuarioForm.apellido}
@@ -199,7 +191,7 @@ export default function DocentesPage() {
           </Box>
           <TextField label="CI" fullWidth size="small" sx={{ mt: 2 }} value={usuarioForm.ci}
             onChange={(e) => setUsuarioForm({ ...usuarioForm, ci: e.target.value })} />
-          <Typography variant="subtitle2" color="text.secondary" mt={3} mb={1}>Credenciales</Typography>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>Credenciales</Typography>
           <TextField label="Correo electrónico" fullWidth size="small" value={usuarioForm.email}
             onChange={(e) => setUsuarioForm({ ...usuarioForm, email: e.target.value })} />
           <TextField label="Contraseña" fullWidth size="small" type="password" sx={{ mt: 2 }}
@@ -214,20 +206,19 @@ export default function DocentesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog editar docente */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
           Editar Docente — {selectedDocente?.usuario.apellido}, {selectedDocente?.usuario.nombre}
         </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box display="flex" gap={2} mt={1}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
             <TextField label="Nombre" fullWidth size="small" value={editForm.nombre}
               onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={editForm.apellido}
               onChange={(e) => setEditForm({ ...editForm, apellido: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="CI" fullWidth size="small" value={editForm.ci}
               onChange={(e) => setEditForm({ ...editForm, ci: e.target.value })} />
             <TextField label="Teléfono" fullWidth size="small" value={editForm.telefono}

@@ -8,7 +8,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import api from '../../api/axios';
-
+ 
 type Usuario = {
   id: string;
   nombre: string;
@@ -19,7 +19,7 @@ type Usuario = {
   isActive: boolean;
   createdAt: string;
 };
-
+ 
 type UsuarioForm = {
   nombre: string;
   apellido: string;
@@ -28,7 +28,7 @@ type UsuarioForm = {
   password: string;
   role: string;
 };
-
+ 
 type EditUsuarioForm = {
   nombre: string;
   apellido: string;
@@ -37,16 +37,16 @@ type EditUsuarioForm = {
   role: string;
   isActive: boolean;
 };
-
+ 
 const ROLES = ['ADMINISTRADOR', 'DIRECTOR', 'CAJERO', 'DOCENTE'];
-
+ 
 const ROLE_COLORS: Record<string, 'error' | 'warning' | 'info' | 'secondary'> = {
   ADMINISTRADOR: 'error',
   DIRECTOR: 'warning',
   CAJERO: 'info',
   DOCENTE: 'secondary',
 };
-
+ 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,15 +55,15 @@ export default function UsuariosPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
-
+ 
   const [form, setForm] = useState<UsuarioForm>({
     nombre: '', apellido: '', ci: '', email: '', password: '', role: 'ADMINISTRADOR',
   });
-
+ 
   const [editForm, setEditForm] = useState<EditUsuarioForm>({
     nombre: '', apellido: '', ci: '', email: '', role: '', isActive: true,
   });
-
+ 
   const fetchUsuarios = async () => {
     try {
       const { data } = await api.get('/usuarios');
@@ -74,9 +74,9 @@ export default function UsuariosPage() {
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => { fetchUsuarios(); }, []);
-
+ 
   const handleSubmit = async () => {
     setError('');
     setSaving(true);
@@ -91,7 +91,7 @@ export default function UsuariosPage() {
       setSaving(false);
     }
   };
-
+ 
   const handleEditOpen = (usuario: Usuario) => {
     setSelectedUsuario(usuario);
     setEditForm({
@@ -104,7 +104,7 @@ export default function UsuariosPage() {
     });
     setEditOpen(true);
   };
-
+ 
   const handleEditSubmit = async () => {
     if (!selectedUsuario) return;
     setError('');
@@ -119,18 +119,18 @@ export default function UsuariosPage() {
       setSaving(false);
     }
   };
-
+ 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">Usuarios del Sistema</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Usuarios del Sistema</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)} sx={{ borderRadius: 2 }}>
           Nuevo Usuario
         </Button>
       </Box>
-
+ 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
         <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
           <TableContainer>
@@ -179,19 +179,18 @@ export default function UsuariosPage() {
           </TableContainer>
         </Card>
       )}
-
-      {/* Dialog nuevo usuario */}
+ 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">Crear Nuevo Usuario</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Crear Nuevo Usuario</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="Nombre" fullWidth size="small" value={form.nombre}
               onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={form.apellido}
               onChange={(e) => setForm({ ...form, apellido: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="CI" fullWidth size="small" value={form.ci}
               onChange={(e) => setForm({ ...form, ci: e.target.value })} />
             <TextField select fullWidth label="Rol" size="small" value={form.role}
@@ -211,27 +210,26 @@ export default function UsuariosPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Dialog editar usuario */}
+ 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle fontWeight="bold">
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
           Editar Usuario — {selectedUsuario?.apellido}, {selectedUsuario?.nombre}
         </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box display="flex" gap={2} mt={1}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
             <TextField label="Nombre" fullWidth size="small" value={editForm.nombre}
               onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} />
             <TextField label="Apellido" fullWidth size="small" value={editForm.apellido}
               onChange={(e) => setEditForm({ ...editForm, apellido: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField label="CI" fullWidth size="small" value={editForm.ci}
               onChange={(e) => setEditForm({ ...editForm, ci: e.target.value })} />
             <TextField label="Email" fullWidth size="small" value={editForm.email}
               onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
           </Box>
-          <Box display="flex" gap={2} mt={2}>
+          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
             <TextField select fullWidth label="Rol" size="small" value={editForm.role}
               onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
               {ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}

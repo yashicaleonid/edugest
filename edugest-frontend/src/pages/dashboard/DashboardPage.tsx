@@ -7,31 +7,31 @@ import PersonIcon from '@mui/icons-material/Person';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import api from '../../api/axios';
-
+ 
 type Stats = {
   estudiantes: number;
   docentes: number;
   pagosHoy: number;
   asistenciaHoy: number;
 };
-
+ 
 type StatCardProps = {
   title: string;
   value: number;
   icon: React.ReactNode;
   color: string;
 };
-
+ 
 function StatCard({ title, value, icon, color }: StatCardProps) {
   return (
     <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
       <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
-            <Typography variant="body2" color="text.secondary" mb={0.5}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
               {title}
             </Typography>
-            <Typography variant="h4" fontWeight="bold">
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
               {value}
             </Typography>
           </Box>
@@ -52,7 +52,7 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
     </Card>
   );
 }
-
+ 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     estudiantes: 0,
@@ -61,7 +61,7 @@ export default function DashboardPage() {
     asistenciaHoy: 0,
   });
   const [loading, setLoading] = useState(true);
-
+ 
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -71,12 +71,12 @@ export default function DashboardPage() {
           api.get('/pagos'),
           api.get('/asistencia/curso/all').catch(() => ({ data: [] })),
         ]);
-
+ 
         const hoy = new Date().toISOString().split('T')[0];
         const pagosHoy = pagosRes.data.filter((p: any) =>
           p.createdAt?.startsWith(hoy)
         ).length;
-
+ 
         setStats({
           estudiantes: estudiantesRes.data.length,
           docentes: docentesRes.data.length,
@@ -89,26 +89,26 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-
+ 
     fetchStats();
   }, []);
-
+ 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress />
       </Box>
     );
   }
-
+ 
   return (
     <Box>
-      <Typography variant="h5" fontWeight="bold" mb={3}>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
         Panel Principal
       </Typography>
-
+ 
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Total Estudiantes"
             value={stats.estudiantes}
@@ -116,7 +116,7 @@ export default function DashboardPage() {
             color="#3b82f6"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Total Docentes"
             value={stats.docentes}
@@ -124,7 +124,7 @@ export default function DashboardPage() {
             color="#10b981"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Pagos Hoy"
             value={stats.pagosHoy}
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             color="#f59e0b"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Asistencias Hoy"
             value={stats.asistenciaHoy}
@@ -141,12 +141,12 @@ export default function DashboardPage() {
           />
         </Grid>
       </Grid>
-
-      <Grid container spacing={3} mt={1}>
-        <Grid item xs={12} md={6}>
+ 
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent>
-              <Typography variant="h6" fontWeight="bold" mb={2}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
                 Accesos Rápidos
               </Typography>
               {[
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                   }}
                   onClick={() => window.location.href = item.path}
                 >
-                  <Typography variant="body2" color="primary" fontWeight="medium">
+                  <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
                     {item.label}
                   </Typography>
                 </Box>
@@ -175,11 +175,11 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid item xs={12} md={6}>
+ 
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent>
-              <Typography variant="h6" fontWeight="bold" mb={2}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
                 Información del Sistema
               </Typography>
               {[
@@ -190,14 +190,12 @@ export default function DashboardPage() {
               ].map((item) => (
                 <Box
                   key={item.label}
-                  display="flex"
-                  justifyContent="space-between"
-                  sx={{ py: 1, borderBottom: '1px solid #f1f5f9' }}
+                  sx={{ display: 'flex', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #f1f5f9' }}
                 >
                   <Typography variant="body2" color="text.secondary">
                     {item.label}
                   </Typography>
-                  <Typography variant="body2" fontWeight="medium">
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                     {item.value}
                   </Typography>
                 </Box>
@@ -209,3 +207,4 @@ export default function DashboardPage() {
     </Box>
   );
 }
+ 

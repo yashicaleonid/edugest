@@ -12,11 +12,13 @@ import { PagosModule } from './pagos/pagos.module';
 import { AsistenciaModule } from './asistencia/asistencia.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { FacturasModule } from './facturas/facturas.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MailModule,
     AuthModule,
     UsuariosModule,
     EstudiantesModule,

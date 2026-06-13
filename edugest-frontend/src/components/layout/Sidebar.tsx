@@ -17,6 +17,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { puedeAcceder, type Modulo } from '../../utils/permissions';
+import CampaignIcon from '@mui/icons-material/Campaign';
 
 const ALL_MENU_ITEMS: { text: string; icon: React.ReactNode; path: string; modulo: Modulo }[] = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', modulo: 'dashboard' },
@@ -32,6 +33,7 @@ const ALL_MENU_ITEMS: { text: string; icon: React.ReactNode; path: string; modul
   { text: 'Documentos', icon: <FolderIcon />, path: '/documentos', modulo: 'documentos' },
   { text: 'Reportes', icon: <AssessmentIcon />, path: '/reportes', modulo: 'reportes' },
   { text: 'Notificaciones', icon: <NotificationsIcon />, path: '/notificaciones', modulo: 'notificaciones' },
+  { text: 'Comunicados', icon: <CampaignIcon />, path: '/comunicados', modulo: 'comunicados' },
 ];
 
 const DRAWER_WIDTH = 240;

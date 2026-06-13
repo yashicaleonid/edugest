@@ -19,6 +19,7 @@ import Layout from '../components/layout/Layout';
 import InscripcionesPage from '../pages/inscripciones/InscripcionesPage';
 import ReportesPage from '../pages/reportes/ReportesPage';
 import { puedeAcceder, type Modulo } from '../utils/permissions';
+import ComunicadosPage from '../pages/comunicados/ComunicadosPage';
 
 const PrivateRoute = ({ children, modulo }: { children: ReactElement; modulo?: Modulo }) => {
   const { isAuthenticated, user } = useAuth();
@@ -61,6 +62,7 @@ export default function AppRouter() {
           <Route path="inscripciones" element={<PrivateRoute modulo="inscripciones"><InscripcionesPage /></PrivateRoute>} />
           <Route path="reportes" element={<PrivateRoute modulo="reportes"><ReportesPage /></PrivateRoute>} />
           <Route path="notificaciones" element={<PrivateRoute modulo="notificaciones"><NotificacionesPage /></PrivateRoute>} />
+          <Route path="comunicados" element={<PrivateRoute modulo="comunicados"><ComunicadosPage /></PrivateRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>

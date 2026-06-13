@@ -14,25 +14,26 @@ export type Modulo =
   | 'documentos'
   | 'reportes'
   | 'comunicados'
+  | 'eventos'
   | 'notificaciones';
 
 const PERMISOS: Record<Usuario['role'], Modulo[]> = {
   ADMINISTRADOR: [
     'dashboard', 'usuarios', 'estudiantes', 'padres', 'inscripciones',
     'docentes', 'cursos', 'pagos', 'facturas', 'asistencia', 'documentos',
-    'reportes', 'notificaciones', 'comunicados',
+    'reportes', 'notificaciones', 'comunicados', 'eventos',
   ],
   DIRECTOR: [
     'dashboard', 'usuarios', 'estudiantes', 'padres', 'inscripciones',
     'docentes', 'cursos', 'pagos', 'facturas', 'asistencia', 'documentos',
-    'reportes', 'notificaciones', 'comunicados',
+    'reportes', 'notificaciones', 'comunicados', 'eventos',
   ],
   CAJERO: [
     'dashboard', 'estudiantes', 'padres', 'inscripciones', 'pagos',
     'facturas', 'reportes', 'notificaciones',
   ],
   DOCENTE: [
-    'dashboard', 'estudiantes', 'cursos', 'asistencia', 'documentos', 'notificaciones',
+    'dashboard', 'estudiantes', 'cursos', 'asistencia', 'documentos', 'notificaciones', 'eventos',
   ],
 };
 

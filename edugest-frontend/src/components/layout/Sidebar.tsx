@@ -18,6 +18,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { puedeAcceder, type Modulo } from '../../utils/permissions';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 const ALL_MENU_ITEMS: { text: string; icon: React.ReactNode; path: string; modulo: Modulo }[] = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', modulo: 'dashboard' },
@@ -33,6 +34,7 @@ const ALL_MENU_ITEMS: { text: string; icon: React.ReactNode; path: string; modul
   { text: 'Documentos', icon: <FolderIcon />, path: '/documentos', modulo: 'documentos' },
   { text: 'Reportes', icon: <AssessmentIcon />, path: '/reportes', modulo: 'reportes' },
   { text: 'Notificaciones', icon: <NotificationsIcon />, path: '/notificaciones', modulo: 'notificaciones' },
+  { text: 'Eventos', icon: <CalendarMonthIcon />, path: '/eventos', modulo: 'eventos' },
   { text: 'Comunicados', icon: <CampaignIcon />, path: '/comunicados', modulo: 'comunicados' },
 ];
 

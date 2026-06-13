@@ -187,4 +187,42 @@ export class ReportesService {
       operativos: { asistenciasHoy, pagosHoy },
     };
   }
+  async reporteDocentes(gestion?: number) {
+  const gestionActual = gestion || new Date().getFullYear();
+
+  const cursos = await this.prisma.db.curso.findMany({
+    where: { gestion: gestionActual },
+    include: {
+      docente: {
+        include: {
+          usuario: { select: { nombre: true, apellido: true, email: true, ci: true } },
+        },
+      },
+      _count: { select: { inscripciones: true } },
+    },
+    orderBy: { nombre: 'asc' },
+  });
+
+  return {
+    gestion: gestionActual,
+    total: cursos.length,
+    cursos: cursos.map((c) => ({
+      id: c.id,
+      nombre: c.nombre,
+      nivel: c.nivel,
+      paralelo: c.paralelo,
+      turno: c.turno,
+      cupo: c.cupo,
+      inscritos: c._count.inscripciones,
+      docente: c.docente
+        ? {
+            nombre: c.docente.usuario.nombre,
+            apellido: c.docente.usuario.apellido,
+            email: c.docente.usuario.email,
+            ci: c.docente.usuario.ci,
+          }
+        : null,
+    })),
+  };
+}
 }

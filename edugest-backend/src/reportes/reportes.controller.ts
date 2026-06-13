@@ -52,6 +52,12 @@ export class ReportesController {
     return this.reportesService.reporteInscripciones(gestion ? parseInt(gestion) : undefined);
   }
 
+  @Get('docentes')
+  @Roles(Role.ADMINISTRADOR, Role.DIRECTOR)
+  docentes(@Query('gestion') gestion?: string) {
+    return this.reportesService.reporteDocentes(gestion ? parseInt(gestion) : undefined);
+  }
+
   @Post('enviar-avisos-deuda')
   @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO)
   async enviarAvisosDeuda(@Query('gestion') gestion?: string) {

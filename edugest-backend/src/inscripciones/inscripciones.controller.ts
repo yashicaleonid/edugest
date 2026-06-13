@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Res } from '@nestjs/common';
 import { InscripcionesService } from './inscripciones.service';
 import { CreateInscripcionDto } from './dto/create-inscripcion.dto';
 import { UpdateInscripcionDto } from './dto/update-inscripcion.dto';
@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { Response } from 'express';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('inscripciones')
@@ -43,6 +44,24 @@ export class InscripcionesController {
   @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO)
   findOne(@Param('id') id: string) {
     return this.inscripcionesService.findOne(id);
+  }
+
+  @Get('curso/:cursoId')
+  @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO, Role.DOCENTE)
+  findByCurso(@Param('cursoId') cursoId: string) {
+    return this.inscripcionesService.findAll({ gestion: undefined, estado: undefined, cursoId });
+  }
+
+  @Get(':id/comprobante')
+  @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO)
+  async comprobante(@Param('id') id: string, @Res() res: Response) {
+    const buffer = await this.inscripcionesService.generarComprobante(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="comprobante-inscripcion-${id}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 
   @Patch(':id')

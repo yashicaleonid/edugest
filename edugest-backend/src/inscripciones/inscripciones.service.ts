@@ -72,11 +72,12 @@ export class InscripcionesService {
     return inscripcion;
   }
 
-  async findAll(filtros?: { gestion?: number; estado?: string }) {
+  async findAll(filtros?: { gestion?: number; estado?: string; cursoId?: string }) {
     return this.prisma.db.inscripcion.findMany({
       where: {
         ...(filtros?.gestion && { gestion: filtros.gestion }),
         ...(filtros?.estado && { estado: filtros.estado }),
+        ...(filtros?.cursoId && { cursoId: filtros.cursoId }),
       },
       include: {
         estudiante: { select: { id: true, nombre: true, apellido: true, ci: true } },

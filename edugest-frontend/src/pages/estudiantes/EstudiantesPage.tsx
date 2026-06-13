@@ -7,15 +7,16 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import api from '../../api/axios';
- 
+
 type Padre = {
   id: string;
   nombre: string;
   apellido: string;
   telefono?: string;
 };
- 
+
 type Estudiante = {
   id: string;
   nombre: string;
@@ -25,7 +26,7 @@ type Estudiante = {
   isActive: boolean;
   padre?: Padre;
 };
- 
+
 type PadreForm = {
   nombre: string;
   apellido: string;
@@ -33,35 +34,52 @@ type PadreForm = {
   telefono: string;
   email: string;
 };
- 
+
 type EstudianteForm = {
   nombre: string;
   apellido: string;
   ci: string;
   fechaNac: string;
 };
- 
+
+type HistorialInscripcion = {
+  inscripcionId: string;
+  gestion: number;
+  estado: string;
+  curso: { nombre: string; nivel: string; paralelo: string; turno: string; docente?: string | null };
+  asistencia: { total: number; presentes: number; ausentes: number; retrasos: number; permisos: number; porcentaje: string };
+  pagos: { mes: string; gestion: number; monto: any; metodoPago: string; factura?: string | null; fecha: string }[];
+};
+
+type Historial = {
+  estudiante: { nombre: string; apellido: string; ci: string };
+  historial: HistorialInscripcion[];
+};
+
 export default function EstudiantesPage() {
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [historialOpen, setHistorialOpen] = useState(false);
+  const [historialData, setHistorialData] = useState<Historial | null>(null);
+  const [historialLoading, setHistorialLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [selectedEstudiante, setSelectedEstudiante] = useState<Estudiante | null>(null);
- 
+
   const [padreForm, setPadreForm] = useState<PadreForm>({
     nombre: '', apellido: '', ci: '', telefono: '', email: '',
   });
- 
+
   const [estudianteForm, setEstudianteForm] = useState<EstudianteForm>({
     nombre: '', apellido: '', ci: '', fechaNac: '',
   });
- 
+
   const [editForm, setEditForm] = useState<EstudianteForm>({
     nombre: '', apellido: '', ci: '', fechaNac: '',
   });
- 
+
   const fetchEstudiantes = async () => {
     try {
       const { data } = await api.get('/estudiantes');
@@ -72,9 +90,9 @@ export default function EstudiantesPage() {
       setLoading(false);
     }
   };
- 
+
   useEffect(() => { fetchEstudiantes(); }, []);
- 
+
   const handleSubmit = async () => {
     setError('');
     setSaving(true);
@@ -91,7 +109,7 @@ export default function EstudiantesPage() {
       setSaving(false);
     }
   };
- 
+
   const handleEditOpen = (estudiante: Estudiante) => {
     setSelectedEstudiante(estudiante);
     setEditForm({
@@ -102,7 +120,7 @@ export default function EstudiantesPage() {
     });
     setEditOpen(true);
   };
- 
+
   const handleEditSubmit = async () => {
     if (!selectedEstudiante) return;
     setError('');
@@ -117,7 +135,21 @@ export default function EstudiantesPage() {
       setSaving(false);
     }
   };
- 
+
+  const handleVerHistorial = async (id: string) => {
+    setHistorialLoading(true);
+    setHistorialOpen(true);
+    setHistorialData(null);
+    try {
+      const { data } = await api.get(`/estudiantes/${id}/historial`);
+      setHistorialData(data);
+    } catch {
+      setError('Error al cargar historial.');
+    } finally {
+      setHistorialLoading(false);
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -126,7 +158,7 @@ export default function EstudiantesPage() {
           Nuevo Estudiante
         </Button>
       </Box>
- 
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>
       ) : (
@@ -156,8 +188,11 @@ export default function EstudiantesPage() {
                       <Chip label={e.isActive ? 'Activo' : 'Inactivo'} color={e.isActive ? 'success' : 'error'} size="small" />
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" color="primary" onClick={() => handleEditOpen(e)}>
+                      <IconButton size="small" color="primary" title="Editar" onClick={() => handleEditOpen(e)}>
                         <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="secondary" title="Ver historial académico" onClick={() => handleVerHistorial(e.id)}>
+                        <HistoryEduIcon fontSize="small" />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -174,7 +209,8 @@ export default function EstudiantesPage() {
           </TableContainer>
         </Card>
       )}
- 
+
+      {/* Dialog Nuevo Estudiante */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>Registrar Nuevo Estudiante</DialogTitle>
         <DialogContent>
@@ -196,7 +232,6 @@ export default function EstudiantesPage() {
           </Box>
           <TextField label="Email" fullWidth size="small" sx={{ mt: 2 }} value={padreForm.email}
             onChange={(e) => setPadreForm({ ...padreForm, email: e.target.value })} />
- 
           <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>
             Datos del Estudiante
           </Typography>
@@ -221,7 +256,8 @@ export default function EstudiantesPage() {
           </Button>
         </DialogActions>
       </Dialog>
- 
+
+      {/* Dialog Editar */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>
           Editar Estudiante — {selectedEstudiante?.apellido}, {selectedEstudiante?.nombre}
@@ -247,6 +283,47 @@ export default function EstudiantesPage() {
           <Button variant="contained" onClick={handleEditSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
             {saving ? <CircularProgress size={20} color="inherit" /> : 'Guardar Cambios'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Historial Académico */}
+      <Dialog open={historialOpen} onClose={() => setHistorialOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
+          Historial Académico — {historialData?.estudiante.apellido}, {historialData?.estudiante.nombre}
+        </DialogTitle>
+        <DialogContent>
+          {historialLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : historialData ? (
+            <Box>
+              {historialData.historial.length === 0 ? (
+                <Alert severity="info">Este estudiante no tiene inscripciones registradas.</Alert>
+              ) : historialData.historial.map((h) => (
+                <Card key={h.inscripcionId} sx={{ mb: 2, p: 2, borderRadius: 2, boxShadow: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                      {h.curso.nombre} {h.curso.paralelo} — Gestión {h.gestion}
+                    </Typography>
+                    <Chip label={h.estado} color={h.estado === 'ACTIVO' ? 'success' : 'error'} size="small" />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Nivel: {h.curso.nivel} | Turno: {h.curso.turno} {h.curso.docente ? `| Docente: ${h.curso.docente}` : ''}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap' }}>
+                    <Chip label={`Asistencia: ${h.asistencia.porcentaje}`} color="info" size="small" variant="outlined" />
+                    <Chip label={`Presentes: ${h.asistencia.presentes}`} color="success" size="small" variant="outlined" />
+                    <Chip label={`Ausentes: ${h.asistencia.ausentes}`} color="error" size="small" variant="outlined" />
+                    <Chip label={`Pagos: ${h.pagos.length}`} color="primary" size="small" variant="outlined" />
+                  </Box>
+                </Card>
+              ))}
+            </Box>
+          ) : (
+            <Alert severity="error">No se pudo cargar el historial.</Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setHistorialOpen(false)} variant="contained" sx={{ borderRadius: 2 }}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Box>

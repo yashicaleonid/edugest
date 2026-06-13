@@ -34,11 +34,24 @@ export class InscripcionesService {
       data: dto,
       include: {
         estudiante: { include: { padre: true } },
-        curso: { select: { id: true, nombre: true, nivel: true, paralelo: true, gestion: true } },
+        curso: {
+          select: {
+            id: true,
+            nombre: true,
+            nivel: true,
+            paralelo: true,
+            turno: true,
+            gestion: true,
+            docente: {
+              include: {
+                usuario: { select: { nombre: true, apellido: true } },
+              },
+            },
+          },
+        },
       },
     });
 
-    // Enviar correo al padre si tiene email
     if (inscripcion.estudiante?.padre?.email) {
       await this.mail.enviarConfirmacionInscripcion({
         emailPadre: inscripcion.estudiante.padre.email,
@@ -124,6 +137,92 @@ export class InscripcionesService {
       estudianteId: anterior.estudianteId,
       cursoId: cursoIdFinal,
       gestion: nuevaGestion,
+    });
+  }
+
+  async generarComprobante(id: string): Promise<Buffer> {
+    const inscripcion = await this.findOne(id);
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const PDFDocument = require('pdfkit');
+    const chunks: Buffer[] = [];
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // ── Encabezado ──────────────────────────────────────────
+      doc
+        .fontSize(22)
+        .fillColor('#1976d2')
+        .text('EduGest', { align: 'center' })
+        .fontSize(11)
+        .fillColor('#555555')
+        .text('Sistema de Gestión Escolar', { align: 'center' })
+        .moveDown(0.5);
+
+      doc
+        .fontSize(14)
+        .fillColor('#111111')
+        .text('COMPROBANTE DE INSCRIPCIÓN', { align: 'center', underline: true })
+        .moveDown(1);
+
+      // ── Datos del estudiante ─────────────────────────────────
+      doc.fontSize(12).fillColor('#1976d2').text('Datos del Estudiante').moveDown(0.3);
+      doc.fontSize(10).fillColor('#111111');
+      doc.text(`Nombre:     ${inscripcion.estudiante.nombre} ${inscripcion.estudiante.apellido}`);
+      doc.text(`CI:         ${inscripcion.estudiante.ci}`);
+      doc.moveDown(0.8);
+
+      // ── Datos del curso ──────────────────────────────────────
+      doc.fontSize(12).fillColor('#1976d2').text('Datos del Curso').moveDown(0.3);
+      doc.fontSize(10).fillColor('#111111');
+      doc.text(`Curso:      ${inscripcion.curso.nombre}`);
+      doc.text(`Nivel:      ${inscripcion.curso.nivel}`);
+      doc.text(`Paralelo:   ${inscripcion.curso.paralelo}`);
+      doc.text(`Turno:      ${inscripcion.curso.turno}`);
+      doc.text(`Gestión:    ${inscripcion.gestion}`);
+      doc.text(`Estado:     ${inscripcion.estado}`);
+      doc.moveDown(0.8);
+
+      // ── Tutor / Padre ────────────────────────────────────────
+      if (inscripcion.estudiante.padre) {
+        const p = inscripcion.estudiante.padre;
+        doc.fontSize(12).fillColor('#1976d2').text('Tutor / Padre de Familia').moveDown(0.3);
+        doc.fontSize(10).fillColor('#111111');
+        doc.text(`Nombre:     ${p.nombre} ${p.apellido}`);
+        doc.text(`CI:         ${p.ci}`);
+        if (p.telefono) doc.text(`Teléfono:   ${p.telefono}`);
+        if (p.email)    doc.text(`Correo:     ${p.email}`);
+        doc.moveDown(0.8);
+      }
+
+      // ── Docente asignado ─────────────────────────────────────
+      if (inscripcion.curso.docente?.usuario) {
+        const u = inscripcion.curso.docente.usuario;
+        doc.fontSize(12).fillColor('#1976d2').text('Docente Asignado').moveDown(0.3);
+        doc.fontSize(10).fillColor('#111111');
+        doc.text(`Nombre:     ${u.nombre} ${u.apellido}`);
+        doc.moveDown(0.8);
+      }
+
+      // ── Fecha de emisión ─────────────────────────────────────
+      doc
+        .fontSize(9)
+        .fillColor('#888888')
+        .text(
+          `Emitido el ${new Date().toLocaleDateString('es-BO', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          })}`,
+          { align: 'right' },
+        );
+
+      doc.end();
     });
   }
 }

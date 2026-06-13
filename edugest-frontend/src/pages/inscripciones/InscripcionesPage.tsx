@@ -9,6 +9,7 @@ import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import EditIcon from '@mui/icons-material/Edit';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import api from '../../api/axios';
 
 type Inscripcion = {
@@ -83,6 +84,23 @@ export default function InscripcionesPage() {
       setDetailData(data);
     } catch { setDetailData(null); }
     finally { setDetailLoading(false); }
+  };
+
+  const handleDescargarComprobante = async (id: string) => {
+    try {
+      const response = await api.get(`/inscripciones/${id}/comprobante`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `comprobante-inscripcion-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setError('Error al descargar el comprobante.');
+    }
   };
 
   const handleSubmit = async () => {
@@ -176,6 +194,9 @@ export default function InscripcionesPage() {
                       </IconButton>
                       <IconButton size="small" title="Cambiar estado" onClick={() => { setSelected(i); setNuevoEstado(i.estado); setEstadoOpen(true); }}>
                         <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error" title="Descargar comprobante PDF" onClick={() => handleDescargarComprobante(i.id)}>
+                        <PictureAsPdfIcon fontSize="small" />
                       </IconButton>
                       {i.estado === 'ACTIVO' && (
                         <IconButton size="small" color="success" title="Renovar inscripción" onClick={() => {
@@ -290,6 +311,9 @@ export default function InscripcionesPage() {
           ) : <Alert severity="error">No se pudo cargar el detalle.</Alert>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => handleDescargarComprobante(detailData?.id || '')} variant="outlined" color="error" startIcon={<PictureAsPdfIcon />} sx={{ borderRadius: 2 }}>
+            Descargar PDF
+          </Button>
           <Button onClick={() => setDetailOpen(false)} variant="contained" sx={{ borderRadius: 2 }}>Cerrar</Button>
         </DialogActions>
       </Dialog>

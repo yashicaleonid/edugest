@@ -173,4 +173,17 @@ export class FacturasService {
       data: { estado: 'ANULADA' },
     });
   }
+
+  async descargarPdf(id: string): Promise<{ url: string; nroFactura: number }> {
+  const factura = await this.findOne(id);
+
+  if (!factura.pdfUrl) {
+    throw new NotFoundException('Esta factura no tiene PDF disponible.');
+  }
+
+  return {
+    url: factura.pdfUrl,
+    nroFactura: factura.nroFactura,
+  };
+}
 }

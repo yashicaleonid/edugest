@@ -34,6 +34,12 @@ export class FacturasController {
     return this.facturasService.validarSin(id);
   }
 
+  @Get(':id/pdf')
+  @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO)
+  descargarPdf(@Param('id') id: string) {
+    return this.facturasService.descargarPdf(id);
+  }
+
   @Post(':id/reenviar')
   @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO)
   reenviarCorreo(@Param('id') id: string) {

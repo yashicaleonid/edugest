@@ -30,6 +30,12 @@ export class EstudiantesController {
     return this.estudiantesService.findOne(id);
   }
 
+  @Get(':id/historial')
+  @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO, Role.DOCENTE)
+  historialAcademico(@Param('id') id: string) {
+    return this.estudiantesService.historialAcademico(id);
+  }
+
   @Patch(':id')
   @Roles(Role.ADMINISTRADOR, Role.DIRECTOR, Role.CAJERO)
   update(@Param('id') id: string, @Body() dto: UpdateEstudianteDto) {

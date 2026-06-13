@@ -40,6 +40,7 @@ model Usuario {
   notificaciones Notificacion[]
   documentos     Documento[]
   eventos        Evento[]
+  auditLogs      AuditLog[]
 
   @@map("usuarios")
 }
@@ -209,4 +210,18 @@ model Evento {
   creadoPor   Usuario  @relation(fields: [creadoPorId], references: [id])
 
   @@map("eventos")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  usuarioId String?
+  accion    String
+  modulo    String
+  detalle   String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("audit_logs")
 }

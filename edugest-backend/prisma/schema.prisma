@@ -39,6 +39,7 @@ model Usuario {
   pagos          Pago[]
   notificaciones Notificacion[]
   documentos     Documento[]
+  eventos        Evento[]
 
   @@map("usuarios")
 }
@@ -194,4 +195,18 @@ model Documento {
   subidoPor    Usuario?    @relation(fields: [subidoPorId], references: [id])
 
   @@map("documentos")
+}
+
+model Evento {
+  id          String   @id @default(uuid())
+  titulo      String
+  descripcion String?
+  fecha       DateTime
+  lugar       String?
+  createdAt   DateTime @default(now())
+
+  creadoPorId String
+  creadoPor   Usuario  @relation(fields: [creadoPorId], references: [id])
+
+  @@map("eventos")
 }
